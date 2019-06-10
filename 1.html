@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+
+  <style>
+  body{
+    background: #000;
+  }
+
+  #canvas{
+    background: #eee;
+  }
+  </style>
+</head>
+<body>
+  <canvas id='canvas' height="800" width="1500">
+    哥,你的浏览器太旧了
+  </canvas>
+
+
+
+  <script src="./utils/utils.js"></script>
+  <script src="./tools.js"></script>
+  <script src="./components/box.js"></script>
+  <script>
+    let cv = document.getElementById('canvas');
+    let ctx = cv.getContext('2d');
+    
+    let SIGN = {
+      obj: null,
+      objs:[],
+      isDrag: false
+    }
+
+    let box1 = new TitleBox({x:100, y:100})
+    let box2 = new Box({x:150, y:150, topBg:'red'})
+    let box3 = new Box({x:200, y:200, topBg:'pink'})
+    let box4 = new Box({x:250, y:250, topBg:'yellow'})
+    let box5 = new Box({x:300, y:300, topBg:'orange'})
+
+    SIGN.objs.push(box1)
+    SIGN.objs.push(box2)
+    SIGN.objs.push(box3)
+    SIGN.objs.push(box4)
+    SIGN.objs.push(box5)
+
+    // 获取鼠标在canvas上的坐标
+    let mousePos = T.getMousePos(cv)  
+    
+    cv.addEventListener('mousedown', (ev)=>{
+      
+      let posOnObj=null;
+
+      posOnObj = isMouseOnObj()
+
+      if(posOnObj){SIGN.isDrag = true}
+      
+
+      cv.addEventListener('mousemove', function(ev){
+        if(SIGN.isDrag){
+          SIGN.obj.transform({
+            x: mousePos.x - posOnObj.x,
+            y: mousePos.y - posOnObj.y,
+          })
+          refresh()
+        }
+      })
+     
+      cv.addEventListener('mouseup', ()=> {})
+    })
+
+    document.addEventListener('mouseup',()=>{ SIGN.isDrag = false })
+
+    cv.addEventListener('mousemove', function(){
+      if( isMouseOnObj() ){
+        // 鼠标在box上
+        SIGN.obj.transform({
+          ishover: true
+        })
+        refresh()
+        console.log(SIGN.obj)
+      }
+    })
+
+    
+    /**
+     * 鼠标是否在 obj 上
+     * 如果在：修改 SIGN.obj,  SIGN.isDrag
+     * @return {鼠标在obj上的位置|false} 
+     */
+    function isMouseOnObj(){
+      let result;
+      let num = 0;
+      for(let i=SIGN.objs.length-1; i>=0; i--){
+
+        SIGN.objs[i].transform({ ishover:false })
+       
+        if( SIGN.objs[i].isPoint(mousePos) ){  // 鼠标在对象上
+
+          /*  
+          * NOTICE:  注意这里的处理逻辑
+          * 如果不是拖动状态：拖动时， 鼠标在多个对象重合的地方会切换拖动对象
+          * 是鼠标的第一个对象： 鼠标在多个对象重合的地方会都有边框
+          */
+          if(!SIGN.isDrag && num == 0){ 
+            SIGN.obj = SIGN.objs[i];
+            SIGN.obj.transform({ ishover:true })
+            num++;
+          } 
+
+          result = getPosOnObj()
+        }
+
+      }
+      refresh()
+
+      if(!result){ return false }
+      return result;
+    }
+
+    /**
+     * 获取鼠标在 obj 上的坐标
+     */
+     function getPosOnObj(){
+      let pos = {};
+      pos.x = mousePos.x - SIGN.obj.x;
+      pos.y = mousePos.y - SIGN.obj.y;
+
+      return pos
+    }
+
+    
+    function refresh(){
+      ctx.clearRect(0, 0, 1500, 800);
+      SIGN.objs.forEach( item => item.draw() )
+    }
+
+
+    /*
+      var yImg = new Image();
+      yImg.src = './arcTo.png';
+      yImg.onload = function(){
+        draw(this)
+      }
+      function draw(obj){
+        ctx.drawImage(obj, 100, 50) 
+      }
+    
+    */
+
+
+
+  
+
+  </script>
+</body>
+</html>

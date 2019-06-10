@@ -1,0 +1,8 @@
+#j-assert {
+    border: 2px ridge maroon;
+    background-color: #ffffcc;
+    padding: 0.25em 1.5em;
+    margin-left: 0;
+}
+#j-assert .pass { color: #006400; }
+#j-assert .fail { color: #dc143c; text-decoration: line-through; }
