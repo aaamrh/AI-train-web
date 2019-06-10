@@ -33,12 +33,17 @@
   topBg         :  顶部box的背景颜色，默认 #fff
   bottomBg      :  底部box的背景颜色，默认 #b4b4b4
   borderRadius  :  box的边框弧度。默认 20
+  ishover       :  是否是hover状态
 
-  TODO: 标题, 连接点等。  其他的想出来再添加。
 
-
+  函数参数：
   U: 日常开发常用的函数
   T: 此项目开发常用的函数
+
+
+  TODO:  标题, 连接点等。  其他的想出来再添加。
+  this.knots = {}
+  this.arrow = []
 
 */
 
@@ -52,10 +57,9 @@
     this.topBg = params.topBg || '#fff';
     this.bottomBg = params.bottomBg || '#b4b4b4';
     this.borderRadius = params.borderRadius || 16;
-    // this.haveBorder = params.border || false;
 
     this.knots = {}
-    this.arrow = []
+    this.lines = {}
 
     // 状态 hover
     this.ishover = false;
@@ -87,11 +91,12 @@
 
 
       if(this.ishover){
+        // 边框
         ctx.beginPath()
         this.borderPath();
         ctx.closePath()
         ctx.stroke()
-
+        // 接点
         this.drawKnot();
       }
     },
@@ -152,14 +157,18 @@
       ctx.lineTo(x , y + borderRadius);
     },
     isPoint: function(pos){
+      // 鼠标是否在box上
       let {x, y} = pos;
       return x>this.x && x<=this.x+this.w && y>this.y && y<= this.topH+this.bottomH+this.y;
     },
     knotPath: function(params){
-      let {x,y,r,rad1,rad2,name,fillStyle,globalAlpha} = params
+      let {x, y, r, rad1, rad2, name, globalAlpha} = params;
+      let fillStyle = '';
+
+      fillStyle = this.knots[name] ? this.knots[name].fillStyle : '#333';
 
       ctx.globalAlpha = globalAlpha || .5;
-      ctx.fillStyle = fillStyle || '#333';
+      ctx.fillStyle = fillStyle;
       ctx.beginPath()
       ctx.arc(x, y, r, rad1||0, rad2||360)
       ctx.closePath()
@@ -170,8 +179,10 @@
       knot.name = name;
       knot.x = x;
       knot.y = y;
+      knot.r = r;
+      knot.fillStyle = fillStyle;
 
-      this.knots[name] = knot 
+      this.knots[name] = knot
     },
     drawKnot: function(){
       let {x, y, w, topH, bottomH} = this;
@@ -201,7 +212,15 @@
       ctx.restore()
     },
     isPointKnot: function(pos){
-
+      // 鼠标是否在连线点上
+      let knot = null;
+      for(let i in this.knots){
+        knot = this.knots[i]
+        if( (pos.x - knot.x)**2 + (pos.y - knot.y)**2 <= knot.r**2 ){
+          return knot;
+        }
+      }
+      return false;
     },
   }
   

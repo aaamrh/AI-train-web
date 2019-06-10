@@ -33,7 +33,8 @@
     let SIGN = {
       obj: null,
       objs:[],
-      isDrag: false
+      isDrag: false,
+      isDrawLine: false
     }
 
     let box1 = new TitleBox({x:100, y:100})
@@ -53,14 +54,18 @@
     
     cv.addEventListener('mousedown', (ev)=>{
       
-      let posOnObj=null;
+      let posOnObj = isMouseOnObj();
 
-      posOnObj = isMouseOnObj()
+      if(posOnObj && !SIGN.isDrawLine){ SIGN.isDrag = true }
 
-      if(posOnObj){SIGN.isDrag = true}
-      
+      // 如果点击在 knot 上不拖动， 是连线
+      if( isPointKnot(mousePos) ){  
+        SIGN.isDrag = false;
+        SIGN.isDrawLine = true; 
+      }
 
       cv.addEventListener('mousemove', function(ev){
+
         if(SIGN.isDrag){
           SIGN.obj.transform({
             x: mousePos.x - posOnObj.x,
@@ -73,7 +78,10 @@
       cv.addEventListener('mouseup', ()=> {})
     })
 
-    document.addEventListener('mouseup',()=>{ SIGN.isDrag = false })
+    document.addEventListener('mouseup', ()=>{ 
+      SIGN.isDrag = false;
+      SIGN.isDrawLine = false; 
+    })
 
     cv.addEventListener('mousemove', function(){
       if( isMouseOnObj() ){
@@ -95,21 +103,26 @@
     function isMouseOnObj(){
       let result;
       let num = 0;
+      let knotActive = null;
+
       for(let i=SIGN.objs.length-1; i>=0; i--){
 
         SIGN.objs[i].transform({ ishover:false })
        
-        if( SIGN.objs[i].isPoint(mousePos) ){  // 鼠标在对象上
+        if( SIGN.objs[i].isPoint(mousePos) ){  // 鼠标是否在box上
 
-          /*  
-          * NOTICE:  注意这里的处理逻辑
-          * 如果不是拖动状态：拖动时， 鼠标在多个对象重合的地方会切换拖动对象
-          * 是鼠标的第一个对象： 鼠标在多个对象重合的地方会都有边框
+          /**  
+           * NOTICE: 注意这里的处理逻辑
+           * 如果不是拖动状态：拖动时， 鼠标在多个对象重合的地方会切换拖动对象
+           * 是鼠标的第一个对象： 鼠标在多个对象重合的地方会都有边框
           */
           if(!SIGN.isDrag && num == 0){ 
             SIGN.obj = SIGN.objs[i];
             SIGN.obj.transform({ ishover:true })
             num++;
+            
+            knotActive = isPointKnot(mousePos)
+            setKnotStyle(knotActive)
           } 
 
           result = getPosOnObj()
@@ -140,6 +153,32 @@
     }
 
 
+
+    function isPointKnot(pos){
+      // 鼠标是否在 连接点 上, 是返回该 knot，不是返回 false
+      return SIGN.obj.isPointKnot(pos)
+
+      // 封装前的写法
+      // knotActive = SIGN.obj.isPointKnot(mousePos) 
+      // if( knotActive ){
+      //   knotActive.fillStyle = 'red';
+      // }
+    }
+
+    function setKnotStyle(knot){
+      // 设置 knot 的 hover 样式
+      if( knot ){
+        knot.fillStyle = 'red';
+      }
+    }
+
+
+    /** 
+     * 
+     * 
+    */
+
+
     /*
       var yImg = new Image();
       yImg.src = './arcTo.png';
@@ -151,10 +190,6 @@
       }
     
     */
-
-
-
-  
 
   </script>
 </body>
