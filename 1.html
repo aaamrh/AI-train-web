@@ -30,95 +30,127 @@
     let cv = document.getElementById('canvas');
     let ctx = cv.getContext('2d');
     
-    let SIGN = {
-      obj: null,
-      objs:[],
-      isDrag: false,
-      isDrawLine: false
+    // 获取鼠标在canvas上的坐标
+    let mousePos = T.getMousePos(cv)
+    
+    let O = {
+      boxes:[],
+      knots: [],
+      hoverBox:null,
+      optBox: null,
+      hoverKnot:null,
+      optKnot: null,
     }
-
+    let STATE = {
+      mosdown:false,
+      mosup:true,
+      isDrag: false,
+      isDrawLine: false,
+    }
+  
     let box1 = new TitleBox({x:100, y:100})
     let box2 = new Box({x:150, y:150, topBg:'red'})
     let box3 = new Box({x:200, y:200, topBg:'pink'})
     let box4 = new Box({x:250, y:250, topBg:'yellow'})
     let box5 = new Box({x:300, y:300, topBg:'orange'})
 
-    SIGN.objs.push(box1)
-    SIGN.objs.push(box2)
-    SIGN.objs.push(box3)
-    SIGN.objs.push(box4)
-    SIGN.objs.push(box5)
 
-    // 获取鼠标在canvas上的坐标
-    let mousePos = T.getMousePos(cv)  
-    
+    O.boxes.push(box1)
+    O.boxes.push(box2)
+    O.boxes.push(box3)
+    O.boxes.push(box4)
+    O.boxes.push(box5)
+
+
+    /** 
+     * 1. 鼠标点下， 判断是拖拽还是连线  
+     * 2. 鼠标移动， 拖拽 || 连线
+    */
     cv.addEventListener('mousedown', (ev)=>{
-      
+      STATE.mosdown = true;
+      STATE.mosup = false;
+
       let posOnObj = isMouseOnObj();
+      
+      if(posOnObj){ dragOrLine( posOnObj ) }                               // 1
 
-      if(posOnObj && !SIGN.isDrawLine){ SIGN.isDrag = true }
-
-      // 如果点击在 knot 上不拖动， 是连线
-      if( isPointKnot(mousePos) ){  
-        SIGN.isDrag = false;
-        SIGN.isDrawLine = true; 
-      }
-
-      cv.addEventListener('mousemove', function(ev){
-
-        if(SIGN.isDrag){
-          SIGN.obj.transform({
+      cv.addEventListener('mousemove', function(ev){          // 2
+        if(STATE.isDrag){                                  
+          O.optBox.transform({
             x: mousePos.x - posOnObj.x,
-            y: mousePos.y - posOnObj.y,
+            y: mousePos.y - posOnObj.y
           })
           refresh()
+        }
+
+        // TODO: 划线
+        if(STATE.isDrawLine){
+          // TODO: 如果鼠标没有抬起，不修改 startX/Y
+          console.log(O.optKnot)
+          O.optBox.linePath({
+            startX: O.optKnot.x,
+            startY: O.optKnot.y,
+            endX: mousePos.x,
+            endY: mousePos.y
+          })
+
+          // 连接点的坐标 应该根据：box移动后的 起点 和 终点的坐标变化
         }
       })
      
       cv.addEventListener('mouseup', ()=> {})
-    })
+    })  // mousedown END
+
 
     document.addEventListener('mouseup', ()=>{ 
-      SIGN.isDrag = false;
-      SIGN.isDrawLine = false; 
+      STATE.mosdown = false;
+      STATE.mosup = true;
+
+      STATE.isDrag = false;
+      STATE.isDrawLine = false; 
+
+      O.optBox = null;
     })
+
 
     cv.addEventListener('mousemove', function(){
       if( isMouseOnObj() ){
         // 鼠标在box上
-        SIGN.obj.transform({
+        O.hoverBox.transform({
           ishover: true
         })
         refresh()
-        console.log(SIGN.obj)
       }
     })
 
     
     /**
      * 鼠标是否在 obj 上
-     * 如果在：修改 SIGN.obj,  SIGN.isDrag
+     * 如果在：修改 O.obj,  STATE.isDrag
      * @return {鼠标在obj上的位置|false} 
+     * NOTICE: 这里设置了 O.obj,  O.knote
      */
     function isMouseOnObj(){
       let result;
       let num = 0;
       let knotActive = null;
 
-      for(let i=SIGN.objs.length-1; i>=0; i--){
+      for(let i=O.boxes.length-1; i>=0; i--){
 
-        SIGN.objs[i].transform({ ishover:false })
+        O.boxes[i].transform({ ishover:false })
        
-        if( SIGN.objs[i].isPoint(mousePos) ){  // 鼠标是否在box上
-
+        if( O.boxes[i].isPoint(mousePos) ){  // 鼠标是否在box上
           /**  
            * NOTICE: 注意这里的处理逻辑
            * 如果不是拖动状态：拖动时， 鼠标在多个对象重合的地方会切换拖动对象
            * 是鼠标的第一个对象： 鼠标在多个对象重合的地方会都有边框
           */
-          if(!SIGN.isDrag && num == 0){ 
-            SIGN.obj = SIGN.objs[i];
-            SIGN.obj.transform({ ishover:true })
+          if(!STATE.isDrag && num == 0){ 
+            if( !STATE.mosdown ) { O.optBox = O.boxes[i] };
+            console.log(STATE.mosdown)
+            console.log(O.optBox)
+            O.hoverBox = O.boxes[i];
+            O.hoverBox.transform({ ishover:true })
             num++;
             
             knotActive = isPointKnot(mousePos)
@@ -127,56 +159,66 @@
 
           result = getPosOnObj()
         }
-
       }
       refresh()
 
       if(!result){ return false }
       return result;
-    }
+    }  // isMouseOnObj  END
 
+    
     /**
      * 获取鼠标在 obj 上的坐标
      */
-     function getPosOnObj(){
+    function getPosOnObj(){
       let pos = {};
-      pos.x = mousePos.x - SIGN.obj.x;
-      pos.y = mousePos.y - SIGN.obj.y;
-
+      pos.x = mousePos.x - O.hoverBox.x;
+      pos.y = mousePos.y - O.hoverBox.y;
       return pos
     }
-
-    
-    function refresh(){
-      ctx.clearRect(0, 0, 1500, 800);
-      SIGN.objs.forEach( item => item.draw() )
-    }
-
 
 
     function isPointKnot(pos){
       // 鼠标是否在 连接点 上, 是返回该 knot，不是返回 false
-      return SIGN.obj.isPointKnot(pos)
-
-      // 封装前的写法
-      // knotActive = SIGN.obj.isPointKnot(mousePos) 
-      // if( knotActive ){
-      //   knotActive.fillStyle = 'red';
-      // }
+      return O.hoverBox.isPointKnot(pos)
     }
+
 
     function setKnotStyle(knot){
       // 设置 knot 的 hover 样式
       if( knot ){
         knot.fillStyle = 'red';
+        // 节点对应的box存储到 objKnot ： {'left-knot': Box1}
+        O.knots[ knot.name ] = O.hoverBox;
+        O.hoverKnot = O.hoverBox.knots[knot.name];
+        if( !STATE.mosdown ){ O.optKnot = O.hoverBox.knots[knot.name] }
+      }else{
+        for(let name in O.knots){
+          let box = O.knots[name];
+          box.knots[name].fillStyle = '#333';
+        }
       }
     }
 
 
-    /** 
-     * 
-     * 
-    */
+    function dragOrLine(o){
+      // 拖拽: 鼠标点击对象 && 不在连接点上 
+      if( o && !STATE.isDrawLine ){ STATE.isDrag = true }
+
+      // 如果点击在 knot 上不是拖动， 是连线
+      if( isPointKnot(mousePos) ){  
+        STATE.isDrag = false;
+        STATE.isDrawLine = true; 
+      }
+    }
+
+        
+    function refresh(){
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      O.boxes.forEach( item => item.draw() )
+    }
+
+   
 
 
     /*

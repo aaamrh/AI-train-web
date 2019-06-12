@@ -56,15 +56,18 @@
     this.bottomH = params.bottomH || 50;
     this.topBg = params.topBg || '#fff';
     this.bottomBg = params.bottomBg || '#b4b4b4';
-    this.borderRadius = params.borderRadius || 16;
+    this.borderRadius = params.borderRadius || 0;
 
     this.knots = {}
-    this.lines = {}
+    this.lines = {
+      'length':0
+    }
 
     // 状态 hover
     this.ishover = false;
 
     this.draw()
+    
   }
   
   Box.prototype = {
@@ -81,15 +84,18 @@
       ctx.closePath()
       ctx.fill()
       ctx.restore()
-  
+      
 
       // box 下部分
       ctx.beginPath()
       this.boxBottomPath()
       ctx.closePath()
       ctx.fill()
+      
 
+      // this.linePath() 
 
+      
       if(this.ishover){
         // 边框
         ctx.beginPath()
@@ -99,6 +105,72 @@
         // 接点
         this.drawKnot();
       }
+    },
+    isPoint: function(pos){
+      // 鼠标是否在box上
+      let {x, y} = pos;
+      return x>this.x && x<=this.x+this.w && y>this.y && y<= this.topH+this.bottomH+this.y;
+    },
+    knotPath:  function(params){
+      let {x, y, r, rad1, rad2, name, globalAlpha} = params;
+      let fillStyle = '';
+
+      fillStyle = this.knots[name] ? this.knots[name].fillStyle : '#333';
+
+      ctx.globalAlpha = globalAlpha || .5;
+      ctx.fillStyle = fillStyle;
+      ctx.beginPath()
+      ctx.arc(x, y, r, rad1||0, rad2||360)
+      ctx.closePath()
+      ctx.fill()
+
+      let knot = {}
+
+      knot.name = name;
+      knot.x = x;
+      knot.y = y;
+      knot.r = r;
+      knot.fillStyle = fillStyle;
+
+      this.knots[name] = knot
+    },
+    drawKnot: function(){
+      let {x, y, w, topH, bottomH} = this;
+      let h = topH + bottomH;
+      let r = 4;
+
+      ctx.save()
+
+      this.knotPath({
+        x: x+w/2,  
+        y: y+r, 
+        r: r, 
+        name: 'top-knot'
+      }) 
+
+      this.knotPath({
+        x: x+w-r,  y: y+h/2, r: r, name:'right-knot'
+      })
+
+      this.knotPath({
+        x: x+w/2, y: y+h-r, r: r, name:'bottom-knot'
+      })
+
+      this.knotPath({
+        x: x+r, y: y+h/2, r: r, name:'left-knot'
+      })
+      ctx.restore()
+    },
+    isPointKnot: function(pos){
+      // 鼠标是否在连线点上
+      let knot = null;
+      for(let i in this.knots){
+        knot = this.knots[i]
+        if( (pos.x - knot.x)**2 + (pos.y - knot.y)**2 <= knot.r**2 ){
+          return knot;
+        }
+      }
+      return false;
     },
     boxTopPath: function(){
       let {x, y, w, topH, borderRadius, topBg} = this
@@ -156,79 +228,67 @@
       ctx.arc( x + borderRadius, y + topH + bottomH - borderRadius, borderRadius, T.toRad(90), T.toRad(180))
       ctx.lineTo(x , y + borderRadius);
     },
-    isPoint: function(pos){
-      // 鼠标是否在box上
-      let {x, y} = pos;
-      return x>this.x && x<=this.x+this.w && y>this.y && y<= this.topH+this.bottomH+this.y;
-    },
-    knotPath: function(params){
-      let {x, y, r, rad1, rad2, name, globalAlpha} = params;
-      let fillStyle = '';
+    linePath: function(params){
+      let {startX, startY, endX, endY} = params
+      // A(this.mouse.x, this.mouse.y)  B1(this.mouse.x - 12, 5)  B2(this.mouse.x-12, -5)
+      // 旋转后的坐标
 
-      fillStyle = this.knots[name] ? this.knots[name].fillStyle : '#333';
+      /**                               .  B1
+       *                                1 、
+       *                                1   、
+       *  ==============================1     . A (mos.x, mos.y)  
+       *  O(startX, startY)             1   、
+       *                                1 、
+       *                                .  B2
+      */
 
-      ctx.globalAlpha = globalAlpha || .5;
-      ctx.fillStyle = fillStyle;
+      let dxA = endX - startX;
+      let dyA = endY - startY;
+      let lenA = Math.sqrt(dxA**2 + dyA**2)
+
+      let radA = -Math.atan2(dyA, dxA);
+
+      let lenB = Math.sqrt( (lenA-12)**2 + 5**2 );
+
+      let radAB = Math.asin(5/lenB);
+      let radB1 = radA + radAB;
+      let radB2 = radA - radAB;
+
+      let xB1 = Math.cos(radB1)*lenB;
+      let yB1 = startY - Math.sin(radB1)*lenB;
+
+      let xB2 = Math.cos(radB2)*lenB;
+      let yB2 = startY - Math.sin(radB2)*lenB;
+
       ctx.beginPath()
-      ctx.arc(x, y, r, rad1||0, rad2||360)
+      ctx.moveTo(startX,startY)
+      ctx.lineTo( (xB1 +xB2 + 2*startX)/2, (yB1+yB2)/2 )
+      ctx.lineTo( xB1 + startX, yB1 )
+      ctx.lineTo( endX, endY )
+      ctx.lineTo( xB2 + startX, yB2 )
+      ctx.lineTo( (xB1 + xB2 + 2*startX)/2, (yB1+yB2)/2 )
+      // ctx.fillText(radA +' | '+ radB1 +' | '+ yB1, this.mouse.x, this.mouse.y)
+      ctx.stroke()
       ctx.closePath()
-      ctx.fill()
 
-      let knot = {}
+      
+      // line = {}
+      // line.id = 'b';
+      // line.startX = 0; 
+      // line.startY = 0; 
+      // line.endX = 0;
+      // line.endY = 0; 
 
-      knot.name = name;
-      knot.x = x;
-      knot.y = y;
-      knot.r = r;
-      knot.fillStyle = fillStyle;
-
-      this.knots[name] = knot
+      // !this.lines[line.id] && (this.lines.length += 1);
+      // this.lines[line.id] = line;
     },
-    drawKnot: function(){
-      let {x, y, w, topH, bottomH} = this;
-      let h = topH + bottomH;
-      let r = 3.5
+    drawLine: function(){
 
-      ctx.save()
-
-      this.knotPath({
-        x: x+w/2,  
-        y: y+r, 
-        r: r, 
-        name: 'top-knot'
-      }) 
-
-      this.knotPath({
-        x: x+w-r,  y: y+h/2, r: r, name:'right-knot'
-      })
-
-      this.knotPath({
-        x: x+w/2, y: y+h-r, r: r, name:'bottom-knot'
-      })
-
-      this.knotPath({
-        x: x+r, y: y+h/2, r: r, name:'left-knot'
-      })
-      ctx.restore()
-    },
-    isPointKnot: function(pos){
-      // 鼠标是否在连线点上
-      let knot = null;
-      for(let i in this.knots){
-        knot = this.knots[i]
-        if( (pos.x - knot.x)**2 + (pos.y - knot.y)**2 <= knot.r**2 ){
-          return knot;
-        }
-      }
-      return false;
-    },
+    }
   }
-  
   
   function TitleBox(params){
     Box.call(this, params)
-    
-    this.title = params.title;
   }
 
 
