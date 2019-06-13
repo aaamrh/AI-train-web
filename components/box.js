@@ -49,6 +49,8 @@
 
 ;(function(U,T){
   function Box(params){
+    this._hash = T.genKey();
+    this.id = 'box-' + this._hash;
     this.x = params.x || 0;
     this.y = params.y || 0;
     this.w = params.w || 160;
@@ -112,10 +114,10 @@
       return x>this.x && x<=this.x+this.w && y>this.y && y<= this.topH+this.bottomH+this.y;
     },
     knotPath:  function(params){
-      let {x, y, r, rad1, rad2, name, globalAlpha} = params;
+      let {id, x, y, r, rad1, rad2, globalAlpha, junction} = params;
       let fillStyle = '';
 
-      fillStyle = this.knots[name] ? this.knots[name].fillStyle : '#333';
+      fillStyle = this.knots[id] ? this.knots[id].fillStyle : '#333';
 
       ctx.globalAlpha = globalAlpha || .5;
       ctx.fillStyle = fillStyle;
@@ -126,13 +128,14 @@
 
       let knot = {}
 
-      knot.name = name;
+      knot.id = id;
       knot.x = x;
       knot.y = y;
       knot.r = r;
       knot.fillStyle = fillStyle;
+      knot.junction = junction;
 
-      this.knots[name] = knot
+      this.knots[id] = knot
     },
     drawKnot: function(){
       let {x, y, w, topH, bottomH} = this;
@@ -142,22 +145,47 @@
       ctx.save()
 
       this.knotPath({
+        id: 'top-knot-' + this._hash,
         x: x+w/2,  
         y: y+r, 
         r: r, 
-        name: 'top-knot'
+        junction:{
+          x: x+w/2,
+          y: y
+        }
       }) 
 
       this.knotPath({
-        x: x+w-r,  y: y+h/2, r: r, name:'right-knot'
+        id: 'right-knot-' + this._hash,
+        x: x+w-r,
+        y: y+h/2, 
+        r: r,
+        junction:{
+          x:x+w,
+          y: y+h/2
+        }
       })
 
       this.knotPath({
-        x: x+w/2, y: y+h-r, r: r, name:'bottom-knot'
+        id: 'bottom-knot-' + this._hash,
+        x: x+w/2, 
+        y: y+h-r, 
+        r: r,
+        junction:{
+          x:x+w/2,
+          y: y+h
+        }
       })
 
       this.knotPath({
-        x: x+r, y: y+h/2, r: r, name:'left-knot'
+        id: 'left-knot-' + this._hash,
+        x: x+r, 
+        y: y+h/2, 
+        r: r,
+        junction:{
+          x:x,
+          y: y+h/2
+        }
       })
       ctx.restore()
     },
@@ -231,7 +259,7 @@
     linePath: function(params){
       let {startX, startY, endX, endY} = params
       // A(this.mouse.x, this.mouse.y)  B1(this.mouse.x - 12, 5)  B2(this.mouse.x-12, -5)
-      // 旋转后的坐标
+      // 求旋转后的坐标
 
       /**                               .  B1
        *                                1 、
@@ -241,7 +269,6 @@
        *                                1 、
        *                                .  B2
       */
-
       let dxA = endX - startX;
       let dyA = endY - startY;
       let lenA = Math.sqrt(dxA**2 + dyA**2)
@@ -267,19 +294,22 @@
       ctx.lineTo( endX, endY )
       ctx.lineTo( xB2 + startX, yB2 )
       ctx.lineTo( (xB1 + xB2 + 2*startX)/2, (yB1+yB2)/2 )
-      // ctx.fillText(radA +' | '+ radB1 +' | '+ yB1, this.mouse.x, this.mouse.y)
       ctx.stroke()
       ctx.closePath()
+    },
+    addLine: function(params){
+      let {id, start, end, from, to} = params;
+      line = {}
+      line.id = id;
+      line.startX = start.x; 
+      line.startY = start.y; 
+      line.endX = end.x;
+      line.endY = end.y; 
+      line.from = from;
+      line.to = to;
 
-      // line = {}
-      // line.id = 'b';
-      // line.startX = 0; 
-      // line.startY = 0; 
-      // line.endX = 0;
-      // line.endY = 0; 
-
-      // !this.lines[line.id] && (this.lines.length += 1);
-      // this.lines[line.id] = line;
+      !this.lines[line.id] && (this.lines.length += 1);
+      this.lines[line.id] = line;
     },
     drawLine: function(){
 

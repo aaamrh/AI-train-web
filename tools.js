@@ -28,3 +28,16 @@ T.toRad = function(angle){
 T.toAngle = function(rad){
   return rad * 180 / Math.PI
 }
+
+
+T.genKey = function (prefix){
+  let str = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let len = 6;
+  let result = prefix || '';
+
+  for(let i=0; i<len; i++){
+    result += str[ Math.floor(Math.random()*str.length) ]
+  }
+
+  return result;
+} 

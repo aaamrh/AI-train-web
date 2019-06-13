@@ -27,17 +27,16 @@
   <script src="./components/box.js"></script>
   <script>
     /** 
-     *  STATE 设置: dragOrLine()
+     *  STATE 设置: 
      *    鼠标点下: 如果在box上: 拖拽（isDrag）
      *             如果在knot上: 画线（isDrawLine）
+     *             dragOrLine() 
      * 
      *  STATE 还原：
      *    doc鼠标抬起: mosdown = false, mosup = true
      *                isDrag = false, STATE.isDrawLine = false;
      *                O.optBox = null, O.optKnot = null;
     */
-
-
     let cv = document.getElementById('canvas');
     let ctx = cv.getContext('2d');
     // 获取鼠标在canvas上的坐标
@@ -84,7 +83,7 @@
       if(!posOnObj) {return}
 
       let knotActive = isPointKnot(mousePos)
-      if( knotActive ){ O.optKnot = O.hoverBox.knots[knotActive.name] }
+      if( knotActive ){ O.optKnot = O.hoverBox.knots[knotActive.id] }
       
 
       //  设置 STATE: drag drawLine
@@ -96,44 +95,44 @@
         cv.removeEventListener('mousemove', opts)
       })
     })  // mousedown END
-   
 
-   
-    document.addEventListener('mouseup', ()=>{ 
-      STATE.mosdown = false;
-      STATE.mosup = true;
+    
+    function options(posOnObj){
+      return function(){          // 2
+        if(STATE.isDrag){                       
+          O.optBox.transform({
+            x: mousePos.x - posOnObj.x,
+            y: mousePos.y - posOnObj.y
+          })
+          refresh()
+        }
 
-      STATE.isDrag = false;
-      STATE.isDrawLine = false; 
-
-      O.optBox = null;
-      O.optKnot = null;
-    })
-
-    cv.addEventListener('mouseup', ()=>{
-      // TODO:
-      // 判断 是否在 节点上, 如果是就创建一条线
-      // 判断结束时 hover 的节点 与 操作节点是否相同
-      // 吸附功能
-
-      // O.optKnot.start = {
-      //   x: O.optKnot.x,
-      //   y: O.optKnot.y
-      // }
-      // O.optKnot.end = {
-      //   endX: mousePos.x,
-      //   endY: mousePos.y
-      // }
-    })
+        // TODO: 画线
+        // 1. 鼠标抬起， 如果在另一个点上，建立连线
+        // 2. 链接线的存储的信息： （box1, box2, knot-left || ..., 起始坐标）
+        // 3. 连接点的坐标 应该根据：box移动后的 起点 和 终点的坐标变化
+        if(STATE.isDrawLine){
+          // console.log(O.optBox)
+          // console.log(O.optKnot)
+          O.optBox.linePath({
+            startX: O.optKnot.junction.x,
+            startY: O.optKnot.junction.y,
+            endX: mousePos.x,
+            endY: mousePos.y
+          })
+        }
+      }
+    }
 
 
     cv.addEventListener('mousemove', function(){
       // BUG: 拖拽时，鼠标移动过快会丢失 hoverbox
-      console.log('------')
-      console.log(O.hoverBox)
-      console.log(O.optBox)
-      console.log(O.hoverKnot)
-      console.log(O.optKnot)
+      // console.log('--------------------------')
+      // console.log(O.optBox)
+      // console.log(O.hoverBox)
+      // console.log(O.optKnot)
+      // console.log(O.hoverKnot)
+
       if( isMouseOnObj() ){
         O.hoverBox.transform({ ishover: true })
 
@@ -147,6 +146,52 @@
       }
     })
 
+    cv.addEventListener('mouseup', ()=>{
+      // TODO:
+      // 判断 是否在 节点上, 如果是就创建一条线
+      // 判断结束时 hover 的节点 与 操作节点是否相同
+      // 吸附功能
+      if( !O.hoverKnot ){ return }
+      if( O.optBox.id === O.hoverBox.id ){ return }
+
+      console.log('--------------------------')
+      console.log(O.optBox)
+      console.log(O.hoverBox)
+      console.log(O.optKnot)
+      console.log(O.hoverKnot)
+
+      O.optBox.addLine({
+        id: T.genKey('Line-'),
+        from: { 
+          box: O.optBox,
+          knot: O.optKnot
+        },
+        to: {
+          box:O.hoverBox,
+          knot: O.hoverKnot
+        },
+        start : {
+          x: O.optKnot.junction.x,
+          y: O.optKnot.junction.y
+        },
+        end : {
+          x: mousePos.x,
+          y: mousePos.y
+        }
+      })
+    })
+       
+   
+    document.addEventListener('mouseup', ()=>{ 
+      STATE.mosdown = false;
+      STATE.mosup = true;
+
+      STATE.isDrag = false;
+      STATE.isDrawLine = false; 
+
+      O.optBox = null;
+      O.optKnot = null;
+    })
     
     /**
      * 鼠标是否在 obj 上
@@ -168,9 +213,7 @@
           // 鼠标在多个box重合的地方时，所有的box会都有边框,因此只设置第一个box的hover状态(num == 0)
           if(num == 0){
             if(STATE.mosdown){  // 第一次点击（不拖拽，不画线）时设置 optBox
-              if( !STATE.isDrag && !STATE.isDrawLine ) { 
-                O.optBox = O.boxes[i] 
-              };
+              if( !STATE.isDrag && !STATE.isDrawLine ){ O.optBox = O.boxes[i] };
             }
             O.hoverBox = O.boxes[i];
             O.hoverBox.transform({ ishover: true });
@@ -209,13 +252,13 @@
       if( knot ){
         knot.fillStyle = 'red';
         // 节点对应的box存储到 knots ： {'left-knot': Box1}
-        O.knots[ knot.name ] = O.hoverBox;
-        O.hoverKnot = O.hoverBox.knots[knot.name];
+        O.knots[ knot.id ] = O.hoverBox;
+        O.hoverKnot = O.hoverBox.knots[knot.id];
       }else{
         // O.hoverKnot = null;
-        for(let name in O.knots){
-          let box = O.knots[name];
-          box.knots[name].fillStyle = '#333';
+        for(let id in O.knots){
+          let box = O.knots[id];
+          box.knots[id].fillStyle = '#333';
         }
       }
     }
@@ -238,34 +281,6 @@
       O.boxes.forEach( item => item.draw() )
     }
 
-
-    function options(posOnObj){
-      return function(){          // 2
-        if(STATE.isDrag){                       
-          O.optBox.transform({
-            x: mousePos.x - posOnObj.x,
-            y: mousePos.y - posOnObj.y
-          })
-          refresh()
-        }
-
-        // TODO: 画线
-        // 1. 鼠标抬起， 如果在另一个点上，建立连线
-        // 2. 链接线的存储的信息： （box1, box2, knot-left || ..., 起始坐标）
-        // 3. 连接点的坐标 应该根据：box移动后的 起点 和 终点的坐标变化
-        if(STATE.isDrawLine){
-          O.optBox.linePath({
-            startX: O.optKnot.x,
-            startY: O.optKnot.y,
-            endX: mousePos.x,
-            endY: mousePos.y
-          })
-        }
-      }
-    }
-
-    
-   
 
 
     /*
