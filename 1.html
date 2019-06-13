@@ -22,14 +22,24 @@
   </canvas>
 
 
-
   <script src="./utils/utils.js"></script>
   <script src="./tools.js"></script>
   <script src="./components/box.js"></script>
   <script>
+    /** 
+     *  STATE 设置: dragOrLine()
+     *    鼠标点下: 如果在box上: 拖拽（isDrag）
+     *             如果在knot上: 画线（isDrawLine）
+     * 
+     *  STATE 还原：
+     *    doc鼠标抬起: mosdown = false, mosup = true
+     *                isDrag = false, STATE.isDrawLine = false;
+     *                O.optBox = null, O.optKnot = null;
+    */
+
+
     let cv = document.getElementById('canvas');
     let ctx = cv.getContext('2d');
-    
     // 获取鼠标在canvas上的坐标
     let mousePos = T.getMousePos(cv)
     
@@ -37,8 +47,8 @@
       boxes:[],
       knots: [],
       hoverBox:null,
-      optBox: null,
       hoverKnot:null,
+      optBox: null,
       optKnot: null,
     }
     let STATE = {
@@ -71,37 +81,24 @@
       STATE.mosup = false;
 
       let posOnObj = isMouseOnObj();
+      if(!posOnObj) {return}
+
+      let knotActive = isPointKnot(mousePos)
+      if( knotActive ){ O.optKnot = O.hoverBox.knots[knotActive.name] }
       
-      if(posOnObj){ dragOrLine( posOnObj ) }                               // 1
 
-      cv.addEventListener('mousemove', function(ev){          // 2
-        if(STATE.isDrag){                                  
-          O.optBox.transform({
-            x: mousePos.x - posOnObj.x,
-            y: mousePos.y - posOnObj.y
-          })
-          refresh()
-        }
+      //  设置 STATE: drag drawLine
+      if(posOnObj){ dragOrLine( posOnObj ) }                  // 1
+      let opts = options(posOnObj)
 
-        // TODO: 划线
-        if(STATE.isDrawLine){
-          // TODO: 如果鼠标没有抬起，不修改 startX/Y
-          console.log(O.optKnot)
-          O.optBox.linePath({
-            startX: O.optKnot.x,
-            startY: O.optKnot.y,
-            endX: mousePos.x,
-            endY: mousePos.y
-          })
-
-          // 连接点的坐标 应该根据：box移动后的 起点 和 终点的坐标变化
-        }
+      cv.addEventListener('mousemove', opts)
+      cv.addEventListener('mouseup', ()=>{
+        cv.removeEventListener('mousemove', opts)
       })
-     
-      cv.addEventListener('mouseup', ()=> {})
     })  // mousedown END
+   
 
-
+   
     document.addEventListener('mouseup', ()=>{ 
       STATE.mosdown = false;
       STATE.mosup = true;
@@ -110,16 +107,43 @@
       STATE.isDrawLine = false; 
 
       O.optBox = null;
+      O.optKnot = null;
+    })
+
+    cv.addEventListener('mouseup', ()=>{
+      // TODO:
+      // 判断 是否在 节点上, 如果是就创建一条线
+      // 判断结束时 hover 的节点 与 操作节点是否相同
+      // 吸附功能
+
+      // O.optKnot.start = {
+      //   x: O.optKnot.x,
+      //   y: O.optKnot.y
+      // }
+      // O.optKnot.end = {
+      //   endX: mousePos.x,
+      //   endY: mousePos.y
+      // }
     })
 
 
     cv.addEventListener('mousemove', function(){
+      // BUG: 拖拽时，鼠标移动过快会丢失 hoverbox
+      console.log('------')
+      console.log(O.hoverBox)
+      console.log(O.optBox)
+      console.log(O.hoverKnot)
+      console.log(O.optKnot)
       if( isMouseOnObj() ){
-        // 鼠标在box上
-        O.hoverBox.transform({
-          ishover: true
-        })
+        O.hoverBox.transform({ ishover: true })
+
+        let actKnot = isPointKnot(mousePos);
+        setKnotStyle(actKnot)
         refresh()
+        if( !actKnot ){ O.hoverKnot = null }
+      }else{
+        O.hoverBox = null;
+        O.hoverKnot = null;
       }
     })
 
@@ -128,34 +152,30 @@
      * 鼠标是否在 obj 上
      * 如果在：修改 O.obj,  STATE.isDrag
      * @return {鼠标在obj上的位置|false} 
-     * NOTICE: 这里设置了 O.obj,  O.knote
+     * NOTICE: 这里设置 O.obj,  O.knot
+     * 
+     * （移动 && 点击） 都会判断 mos是否在对象上
      */
     function isMouseOnObj(){
       let result;
       let num = 0;
-      let knotActive = null;
 
       for(let i=O.boxes.length-1; i>=0; i--){
 
         O.boxes[i].transform({ ishover:false })
        
-        if( O.boxes[i].isPoint(mousePos) ){  // 鼠标是否在box上
-          /**  
-           * NOTICE: 注意这里的处理逻辑
-           * 如果不是拖动状态：拖动时， 鼠标在多个对象重合的地方会切换拖动对象
-           * 是鼠标的第一个对象： 鼠标在多个对象重合的地方会都有边框
-          */
-          if(!STATE.isDrag && num == 0){ 
-            if( !STATE.mosdown ) { O.optBox = O.boxes[i] };
-            console.log(STATE.mosdown)
-            console.log(O.optBox)
+        if( O.boxes[i].isPoint(mousePos) ){  // 鼠标在box上
+          // 鼠标在多个box重合的地方时，所有的box会都有边框,因此只设置第一个box的hover状态(num == 0)
+          if(num == 0){
+            if(STATE.mosdown){  // 第一次点击（不拖拽，不画线）时设置 optBox
+              if( !STATE.isDrag && !STATE.isDrawLine ) { 
+                O.optBox = O.boxes[i] 
+              };
+            }
             O.hoverBox = O.boxes[i];
-            O.hoverBox.transform({ ishover:true })
+            O.hoverBox.transform({ ishover: true });
             num++;
-            
-            knotActive = isPointKnot(mousePos)
-            setKnotStyle(knotActive)
-          } 
+          }
 
           result = getPosOnObj()
         }
@@ -188,11 +208,11 @@
       // 设置 knot 的 hover 样式
       if( knot ){
         knot.fillStyle = 'red';
-        // 节点对应的box存储到 objKnot ： {'left-knot': Box1}
+        // 节点对应的box存储到 knots ： {'left-knot': Box1}
         O.knots[ knot.name ] = O.hoverBox;
         O.hoverKnot = O.hoverBox.knots[knot.name];
-        if( !STATE.mosdown ){ O.optKnot = O.hoverBox.knots[knot.name] }
       }else{
+        // O.hoverKnot = null;
         for(let name in O.knots){
           let box = O.knots[name];
           box.knots[name].fillStyle = '#333';
@@ -218,6 +238,33 @@
       O.boxes.forEach( item => item.draw() )
     }
 
+
+    function options(posOnObj){
+      return function(){          // 2
+        if(STATE.isDrag){                       
+          O.optBox.transform({
+            x: mousePos.x - posOnObj.x,
+            y: mousePos.y - posOnObj.y
+          })
+          refresh()
+        }
+
+        // TODO: 画线
+        // 1. 鼠标抬起， 如果在另一个点上，建立连线
+        // 2. 链接线的存储的信息： （box1, box2, knot-left || ..., 起始坐标）
+        // 3. 连接点的坐标 应该根据：box移动后的 起点 和 终点的坐标变化
+        if(STATE.isDrawLine){
+          O.optBox.linePath({
+            startX: O.optKnot.x,
+            startY: O.optKnot.y,
+            endX: mousePos.x,
+            endY: mousePos.y
+          })
+        }
+      }
+    }
+
+    
    
 
 

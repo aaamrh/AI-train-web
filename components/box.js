@@ -56,7 +56,7 @@
     this.bottomH = params.bottomH || 50;
     this.topBg = params.topBg || '#fff';
     this.bottomBg = params.bottomBg || '#b4b4b4';
-    this.borderRadius = params.borderRadius || 0;
+    this.borderRadius = params.borderRadius || 10;
 
     this.knots = {}
     this.lines = {
@@ -236,7 +236,7 @@
       /**                               .  B1
        *                                1 、
        *                                1   、
-       *  ==============================1     . A (mos.x, mos.y)  
+       *  ==============================1     - A (mos.x, mos.y)  
        *  O(startX, startY)             1   、
        *                                1 、
        *                                .  B2
@@ -271,7 +271,6 @@
       ctx.stroke()
       ctx.closePath()
 
-      
       // line = {}
       // line.id = 'b';
       // line.startX = 0; 
