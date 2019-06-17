@@ -1,26 +1,25 @@
 /* 
-        2                  3
+      2                      3
+    1 ------------------------ 4
+    7 | .(圆心角)   (圆心角). |
+      |                      |
+      |                      |
+      |                      |
+      |                      |
+      |                      |
+    6 |                      | 5
       ------------------------
-   1  | .(圆心角)   (圆心角). | 4
-   7  |                      |
+    8 |                      | 13
       |                      |
-      |                      |
-      |                      |
-      |                      |
-   6  |                      | 5
-      ------------------------
-   8  |                      | 13
-      |                      |
-   9  | .(圆心角)   (圆心角). | 12
-      ------------------------
-       10                 11
+      | .(圆心角)   (圆心角). | 
+    9 ------------------------ 12
+      10                     11
 
   绘制顺序： 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
             7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13
 
       圆心角: 画 box 圆角边时的圆心
 */
-
 
 
 /* 
@@ -41,10 +40,7 @@
   T: 此项目开发常用的函数
 
 
-  TODO:  标题, 连接点等。  其他的想出来再添加。
-  this.knots = {}
-  this.arrow = []
-
+  TODO:  标题等。  其他的想出来再添加。
 */
 
 ;(function(U,T){
@@ -58,7 +54,7 @@
     this.bottomH = params.bottomH || 50;
     this.topBg = params.topBg || '#fff';
     this.bottomBg = params.bottomBg || '#b4b4b4';
-    this.borderRadius = params.borderRadius || 10;
+    this.borderRadius = params.borderRadius || 0;
 
     this.knots = {}
     this.lines = {
@@ -77,7 +73,6 @@
     transform:function(params){
       for(let i in params){  this[i] = params[i] }
     },
-
     draw: function(){
       // box 上部分
       ctx.save()
@@ -95,7 +90,16 @@
       ctx.fill()
       
 
-      // this.linePath() 
+      // Line 
+      for(let i in this.lines){
+        let {startX, startY, endX, endY} = this.lines[i]
+        
+        if(i !== 'length'){
+          startX = this.knots[this.lines[i].from.knot.id].junction.x
+          startY = this.knots[this.lines[i].from.knot.id].junction.y
+          this.drawLine({ startX, startY, endX, endY })
+        }
+      }
 
       
       if(this.ishover){
@@ -183,7 +187,7 @@
         y: y+h/2, 
         r: r,
         junction:{
-          x:x,
+          x: x,
           y: y+h/2
         }
       })
@@ -287,22 +291,21 @@
       let xB2 = Math.cos(radB2)*lenB;
       let yB2 = startY - Math.sin(radB2)*lenB;
 
-      ctx.beginPath()
-      ctx.moveTo(startX,startY)
+      ctx.moveTo(startX, startY)
       ctx.lineTo( (xB1 +xB2 + 2*startX)/2, (yB1+yB2)/2 )
       ctx.lineTo( xB1 + startX, yB1 )
       ctx.lineTo( endX, endY )
       ctx.lineTo( xB2 + startX, yB2 )
       ctx.lineTo( (xB1 + xB2 + 2*startX)/2, (yB1+yB2)/2 )
-      ctx.stroke()
-      ctx.closePath()
     },
     addLine: function(params){
       let {id, start, end, from, to} = params;
-      line = {}
+      let line = {}
       line.id = id;
       line.startX = start.x; 
       line.startY = start.y; 
+      // line.startX = start.x; 
+      // line.startY = start.y; 
       line.endX = end.x;
       line.endY = end.y; 
       line.from = from;
@@ -311,8 +314,18 @@
       !this.lines[line.id] && (this.lines.length += 1);
       this.lines[line.id] = line;
     },
-    drawLine: function(){
-
+    drawLine: function(params){
+      ctx.beginPath()
+      this.linePath(params)
+      ctx.stroke()
+      ctx.closePath()
+    },
+    transformLine: function(params){
+      let { line, start, to } = params;
+      this.lines[line.id].startX = start.x;
+      this.lines[line.id].startY = start.y;
+      this.lines[line.id].endX = to.x;
+      this.lines[line.id].endY = to.y;
     }
   }
   

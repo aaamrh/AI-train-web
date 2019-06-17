@@ -7,8 +7,13 @@
   <title>Document</title>
 
   <style>
+  html,body{
+    height: 100%;
+    overflow: hidden; 
+  }
   body{
     background: #000;
+    margin: 0;
   }
 
   #canvas{
@@ -41,10 +46,15 @@
     let ctx = cv.getContext('2d');
     // 获取鼠标在canvas上的坐标
     let mousePos = T.getMousePos(cv)
+
+    // FIXME: 当出现滚动条时会影响鼠标在box上的判断
+    let scrollTop=0, scrollLeft=0;
     
     let O = {
       boxes:[],
-      knots: [],
+      boxes1: {},
+      knots:{},
+      lines:{},
       hoverBox:null,
       hoverKnot:null,
       optBox: null,
@@ -62,13 +72,20 @@
     let box3 = new Box({x:200, y:200, topBg:'pink'})
     let box4 = new Box({x:250, y:250, topBg:'yellow'})
     let box5 = new Box({x:300, y:300, topBg:'orange'})
-
+    O.boxes1[box1.id] = box1;
+    O.boxes1[box2.id] = box2;
+    O.boxes1[box3.id] = box3;
+    O.boxes1[box4.id] = box4;
+    O.boxes1[box5.id] = box5;
 
     O.boxes.push(box1)
     O.boxes.push(box2)
     O.boxes.push(box3)
     O.boxes.push(box4)
     O.boxes.push(box5)
+
+    // 初始化的时候遍历 box， O.knots 和 O.lines中添加对象
+    // 连线后向 O.lines 中添加
 
 
     /** 
@@ -104,17 +121,35 @@
             x: mousePos.x - posOnObj.x,
             y: mousePos.y - posOnObj.y
           })
+
+          function updatePos(){
+            let line = null;
+            let from, to;
+            let fromKnot, fromBox;
+            let toKnot, toBox;
+            for(let i in O.lines){
+              line = O.lines[i];
+              from = line.from;
+              to = line.to;
+
+              fromKnot = from.knot.id
+              fromBox = from.box.id
+              toBox = to.box.id
+              toKnot = to.knot.id
+              from.box.transformLine({
+                line: line,
+                start: O.boxes1[fromBox].knots[fromKnot],
+                to: O.boxes1[toBox].knots[toKnot]
+              })
+            }
+          }
+          updatePos()
+
           refresh()
         }
 
-        // TODO: 画线
-        // 1. 鼠标抬起， 如果在另一个点上，建立连线
-        // 2. 链接线的存储的信息： （box1, box2, knot-left || ..., 起始坐标）
-        // 3. 连接点的坐标 应该根据：box移动后的 起点 和 终点的坐标变化
         if(STATE.isDrawLine){
-          // console.log(O.optBox)
-          // console.log(O.optKnot)
-          O.optBox.linePath({
+          O.optBox.drawLine({
             startX: O.optKnot.junction.x,
             startY: O.optKnot.junction.y,
             endX: mousePos.x,
@@ -132,7 +167,6 @@
       // console.log(O.hoverBox)
       // console.log(O.optKnot)
       // console.log(O.hoverKnot)
-
       if( isMouseOnObj() ){
         O.hoverBox.transform({ ishover: true })
 
@@ -148,19 +182,17 @@
 
     cv.addEventListener('mouseup', ()=>{
       // TODO:
-      // 判断 是否在 节点上, 如果是就创建一条线
-      // 判断结束时 hover 的节点 与 操作节点是否相同
       // 吸附功能
       if( !O.hoverKnot ){ return }
       if( O.optBox.id === O.hoverBox.id ){ return }
 
-      console.log('--------------------------')
-      console.log(O.optBox)
-      console.log(O.hoverBox)
-      console.log(O.optKnot)
-      console.log(O.hoverKnot)
+      // console.log('--------------------------')
+      // console.log(O.optBox)
+      // console.log(O.hoverBox)
+      // console.log(O.optKnot)
+      // console.log(O.hoverKnot)
 
-      O.optBox.addLine({
+      let line = {
         id: T.genKey('Line-'),
         from: { 
           box: O.optBox,
@@ -178,7 +210,9 @@
           x: mousePos.x,
           y: mousePos.y
         }
-      })
+      }
+      O.lines[line.id] = line;
+      O.optBox.addLine(line)
     })
        
    
@@ -215,12 +249,20 @@
             if(STATE.mosdown){  // 第一次点击（不拖拽，不画线）时设置 optBox
               if( !STATE.isDrag && !STATE.isDrawLine ){ O.optBox = O.boxes[i] };
             }
-            O.hoverBox = O.boxes[i];
-            O.hoverBox.transform({ ishover: true });
+            if(!STATE.isDrag){ O.hoverBox = O.boxes[i] }
+
+            try{
+              if( !O.hoverBox ){ throw '拖拽速度过快，鼠标脱离目标，无法获取到目标' }
+              O.hoverBox.transform({ ishover: true });
+            }catch(err){ console.log(err) }
             num++;
           }
 
-          result = getPosOnObj()
+          try{
+            result = getPosOnObj()
+          }catch(err){
+            console.log('拖拽速度过快，鼠标脱离目标，无法获取到鼠标在目标上的位置')
+          }
         }
       }
       refresh()
@@ -256,8 +298,9 @@
         O.hoverKnot = O.hoverBox.knots[knot.id];
       }else{
         // O.hoverKnot = null;
+        let box = null;
         for(let id in O.knots){
-          let box = O.knots[id];
+          box = O.knots[id];
           box.knots[id].fillStyle = '#333';
         }
       }
