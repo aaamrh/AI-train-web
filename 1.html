@@ -30,6 +30,7 @@
   <script src="./utils/utils.js"></script>
   <script src="./tools.js"></script>
   <script src="./components/box.js"></script>
+  <script src="./components/line.js"></script>
   <script>
     /** 
      *  STATE 设置: 
@@ -49,7 +50,7 @@
 
     // FIXME: 当出现滚动条时会影响鼠标在box上的判断
     let scrollTop=0, scrollLeft=0;
-    
+
     let O = {
       boxes:[],
       boxes1: {},
@@ -59,6 +60,7 @@
       hoverKnot:null,
       optBox: null,
       optKnot: null,
+      tempLine: null
     }
     let STATE = {
       mosdown:false,
@@ -77,6 +79,7 @@
     O.boxes1[box3.id] = box3;
     O.boxes1[box4.id] = box4;
     O.boxes1[box5.id] = box5;
+
 
     O.boxes.push(box1)
     O.boxes.push(box2)
@@ -100,7 +103,10 @@
       if(!posOnObj) {return}
 
       let knotActive = isPointKnot(mousePos)
-      if( knotActive ){ O.optKnot = O.hoverBox.knots[knotActive.id] }
+      if( knotActive ){ 
+        O.optKnot = O.hoverBox.knots[knotActive.id] 
+        O.tempLine = new Line({})
+      }
       
 
       //  设置 STATE: drag drawLine
@@ -123,20 +129,17 @@
           })
 
           function updatePos(){
-            let line = null;
-            let from, to;
-            let fromKnot, fromBox;
-            let toKnot, toBox;
+            let line = null, fromKnot, fromBox, toKnot, toBox;
+
             for(let i in O.lines){
               line = O.lines[i];
-              from = line.from;
-              to = line.to;
 
-              fromKnot = from.knot.id
-              fromBox = from.box.id
-              toBox = to.box.id
-              toKnot = to.knot.id
-              from.box.transformLine({
+              fromKnot = line.from.knot.id
+              fromBox = line.from.box.id
+              toBox = line.to.box.id
+              toKnot = line.to.knot.id
+
+              line.transformLine({
                 line: line,
                 start: O.boxes1[fromBox].knots[fromKnot],
                 to: O.boxes1[toBox].knots[toKnot]
@@ -149,7 +152,7 @@
         }
 
         if(STATE.isDrawLine){
-          O.optBox.drawLine({
+          O.tempLine.drawLine({
             startX: O.optKnot.junction.x,
             startY: O.optKnot.junction.y,
             endX: mousePos.x,
@@ -175,25 +178,21 @@
         refresh()
         if( !actKnot ){ O.hoverKnot = null }
       }else{
-        O.hoverBox = null;
+        if(!STATE.isDrag){
+          O.hoverBox = null;
+        }
         O.hoverKnot = null;
       }
     })
 
     cv.addEventListener('mouseup', ()=>{
-      // TODO:
+      // TODO:  
       // 吸附功能
       if( !O.hoverKnot ){ return }
       if( O.optBox.id === O.hoverBox.id ){ return }
 
-      // console.log('--------------------------')
-      // console.log(O.optBox)
-      // console.log(O.hoverBox)
-      // console.log(O.optKnot)
-      // console.log(O.hoverKnot)
 
-      let line = {
-        id: T.genKey('Line-'),
+      let line1 = new Line({
         from: { 
           box: O.optBox,
           knot: O.optKnot
@@ -210,9 +209,9 @@
           x: mousePos.x,
           y: mousePos.y
         }
-      }
-      O.lines[line.id] = line;
-      O.optBox.addLine(line)
+      })
+      O.lines[line1.id] = line1;
+      line1.addLine(line1)
     })
        
    
@@ -225,6 +224,8 @@
 
       O.optBox = null;
       O.optKnot = null;
+
+      O.tempLine = null;
     })
     
     /**
@@ -251,18 +252,11 @@
             }
             if(!STATE.isDrag){ O.hoverBox = O.boxes[i] }
 
-            try{
-              if( !O.hoverBox ){ throw '拖拽速度过快，鼠标脱离目标，无法获取到目标' }
-              O.hoverBox.transform({ ishover: true });
-            }catch(err){ console.log(err) }
+            O.hoverBox.transform({ ishover: true });
             num++;
           }
 
-          try{
-            result = getPosOnObj()
-          }catch(err){
-            console.log('拖拽速度过快，鼠标脱离目标，无法获取到鼠标在目标上的位置')
-          }
+          result = getPosOnObj()
         }
       }
       refresh()
@@ -322,9 +316,9 @@
     function refresh(){
       ctx.clearRect(0, 0, cv.width, cv.height);
       O.boxes.forEach( item => item.draw() )
+      
+      for(let i in O.lines){ O.lines[i].draw() }
     }
-
-
 
     /*
       var yImg = new Image();
