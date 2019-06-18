@@ -45,7 +45,7 @@
 
 ;(function(U,T){
   function Box(params){
-    this._hash = T.genKey();
+    this._hash = params.id ? params.id.split('-')[1] : T.genKey();
     this.id = 'box-' + this._hash;
     this.x = params.x || 0;
     this.y = params.y || 0;
