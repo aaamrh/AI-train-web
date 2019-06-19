@@ -69,10 +69,12 @@
      *                O.optBox = null, O.optKnot = null;
      * 
      * // TODO:  
-      // 连线时候的吸附功能
+     * // 连线时候的吸附功能
+     * // 加载完后鼠标放上回到原来的状态 
+     * 
     */
-    let cv = document.getElementById('canvas');
-    let ctx = cv.getContext('2d');
+    let cv1 = document.getElementById('canvas');
+    let ctx1 = cv1.getContext('2d');
 
     let cv2 = document.getElementById('canvas2')
     let ctx2 = cv2.getContext('2d');
@@ -107,11 +109,11 @@
       isDrawLine: false,
     }
   
-    let box1 = new TitleBox({x:100, y:100,ctx:ctx})
-    let box2 = new Box({x:150, y:150, topBg:'red',ctx:ctx})
-    let box3 = new Box({x:200, y:200, topBg:'pink',ctx:ctx})
-    let box4 = new Box({x:250, y:250, topBg:'yellow',ctx:ctx})
-    let box5 = new Box({x:300, y:300, topBg:'orange',ctx:ctx})
+    let box1 = new TitleBox({x:100, y:100,ctx: ctx1})
+    let box2 = new Box({x:150, y:150, topBg:'red',ctx: ctx1})
+    let box3 = new Box({x:200, y:200, topBg:'pink',ctx: ctx1})
+    let box4 = new Box({x:250, y:250, topBg:'yellow',ctx: ctx1})
+    let box5 = new Box({x:300, y:300, topBg:'orange',ctx: ctx1})
     O.boxes1[box1.id] = box1;
     O.boxes1[box2.id] = box2;
     O.boxes1[box3.id] = box3;
@@ -130,7 +132,7 @@
      * 1. 鼠标点下， 判断是拖拽还是连线  
      * 2. 鼠标移动， 拖拽 || 连线
     */
-    cv.addEventListener('mousedown', (ev)=>{
+    cv1.addEventListener('mousedown', (ev)=>{
       STATE.mosdown = true;
       STATE.mosup = false;
 
@@ -140,19 +142,19 @@
       let knotActive = isPointKnot(mousePos)
       if( knotActive ){ 
         O.optKnot = O.hoverBox.knots[knotActive.id] 
-        O.tempLine = new Line({})
+        O.tempLine = new Line({ctx: ctx1})
       }
 
       //  设置 STATE: drag drawLine
       if(posOnObj){ dragOrLine( posOnObj ) }           
       let opts = options(posOnObj)
 
-      cv.addEventListener('mousemove', opts)
-      cv.addEventListener('mouseup', ()=>{
-        cv.removeEventListener('mousemove', opts)
+      cv1.addEventListener('mousemove', opts)
+      cv1.addEventListener('mouseup', ()=>{
+        cv1.removeEventListener('mousemove', opts)
       })
-      cv.addEventListener('mouseout', ()=>{
-        cv.removeEventListener('mousemove', opts)
+      cv1.addEventListener('mouseout', ()=>{
+        cv1.removeEventListener('mousemove', opts)
       })
     })  // mousedown END
 
@@ -199,7 +201,7 @@
     }
 
 
-    cv.addEventListener('mousemove', function(){
+    cv1.addEventListener('mousemove', function(){
       // BUG: 拖拽时，鼠标移动过快会丢失 hoverbox
       // console.log('--------------------------')
       // console.log(O.optBox)
@@ -221,11 +223,12 @@
       }
     })
 
-    cv.addEventListener('mouseup', ()=>{
+    cv1.addEventListener('mouseup', ()=>{
       if( !O.hoverKnot ){ return }
       if( O.optBox.id === O.hoverBox.id ){ return }
 
       let line1 = new Line({
+        ctx: ctx1,
         from: {
           box: O.optBox,
           knot: O.optKnot
@@ -354,7 +357,7 @@
 
         
     function refresh(){
-      ctx.clearRect(0, 0, cv.width, cv.height);
+      ctx1.clearRect(0, 0, cv1.width, cv1.height);
       O.boxes.forEach( item => item.draw() )
       
       for(let i in O.lines){ O.lines[i].draw() }
@@ -372,18 +375,19 @@
     load.onclick = function(){
       let o;
       let data = {"boxes":{"box-iJgbBP":{"_hash":"iJgbBP","id":"box-iJgbBP","ctx":{},"x":100,"y":100,"w":160,"topH":150,"bottomH":50,"topBg":"#fff","bottomBg":"#b4b4b4","borderRadius":0,"knots":{"top-knot-iJgbBP":{"id":"top-knot-iJgbBP","x":180,"y":104,"r":4,"fillStyle":"#333","junction":{"x":180,"y":100}},"right-knot-iJgbBP":{"id":"right-knot-iJgbBP","x":256,"y":200,"r":4,"fillStyle":"#333","junction":{"x":260,"y":200}},"bottom-knot-iJgbBP":{"id":"bottom-knot-iJgbBP","x":180,"y":296,"r":4,"fillStyle":"#333","junction":{"x":180,"y":300}},"left-knot-iJgbBP":{"id":"left-knot-iJgbBP","x":104,"y":200,"r":4,"fillStyle":"#333","junction":{"x":100,"y":200}}},"lines":{"length":0},"ishover":false},"box-PmZOn1":{"_hash":"PmZOn1","id":"box-PmZOn1","ctx":{},"x":150,"y":150,"w":160,"topH":150,"bottomH":50,"topBg":"red","bottomBg":"#b4b4b4","borderRadius":0,"knots":{"top-knot-PmZOn1":{"id":"top-knot-PmZOn1","x":230,"y":154,"r":4,"fillStyle":"#333","junction":{"x":230,"y":150}},"right-knot-PmZOn1":{"id":"right-knot-PmZOn1","x":306,"y":250,"r":4,"fillStyle":"#333","junction":{"x":310,"y":250}},"bottom-knot-PmZOn1":{"id":"bottom-knot-PmZOn1","x":230,"y":346,"r":4,"fillStyle":"#333","junction":{"x":230,"y":350}},"left-knot-PmZOn1":{"id":"left-knot-PmZOn1","x":154,"y":250,"r":4,"fillStyle":"#333","junction":{"x":150,"y":250}}},"lines":{"length":0},"ishover":false},"box-OE4D9D":{"_hash":"OE4D9D","id":"box-OE4D9D","ctx":{},"x":200,"y":200,"w":160,"topH":150,"bottomH":50,"topBg":"pink","bottomBg":"#b4b4b4","borderRadius":0,"knots":{"top-knot-OE4D9D":{"id":"top-knot-OE4D9D","x":280,"y":204,"r":4,"fillStyle":"#333","junction":{"x":280,"y":200}},"right-knot-OE4D9D":{"id":"right-knot-OE4D9D","x":356,"y":300,"r":4,"fillStyle":"#333","junction":{"x":360,"y":300}},"bottom-knot-OE4D9D":{"id":"bottom-knot-OE4D9D","x":280,"y":396,"r":4,"fillStyle":"#333","junction":{"x":280,"y":400}},"left-knot-OE4D9D":{"id":"left-knot-OE4D9D","x":204,"y":300,"r":4,"fillStyle":"#333","junction":{"x":200,"y":300}}},"lines":{"length":0},"ishover":false},"box-JCEr7G":{"_hash":"JCEr7G","id":"box-JCEr7G","ctx":{},"x":127,"y":569,"w":160,"topH":150,"bottomH":50,"topBg":"yellow","bottomBg":"#b4b4b4","borderRadius":0,"knots":{"top-knot-JCEr7G":{"id":"top-knot-JCEr7G","x":207,"y":573,"r":4,"fillStyle":"#333","junction":{"x":207,"y":569}},"right-knot-JCEr7G":{"id":"right-knot-JCEr7G","x":283,"y":669,"r":4,"fillStyle":"#333","junction":{"x":287,"y":669}},"bottom-knot-JCEr7G":{"id":"bottom-knot-JCEr7G","x":207,"y":765,"r":4,"fillStyle":"#333","junction":{"x":207,"y":769}},"left-knot-JCEr7G":{"id":"left-knot-JCEr7G","x":131,"y":669,"r":4,"fillStyle":"#333","junction":{"x":127,"y":669}}},"lines":{"length":0},"ishover":false},"box-hlZ1eb":{"_hash":"hlZ1eb","id":"box-hlZ1eb","ctx":{},"x":439,"y":322,"w":160,"topH":150,"bottomH":50,"topBg":"orange","bottomBg":"#b4b4b4","borderRadius":0,"knots":{"top-knot-hlZ1eb":{"id":"top-knot-hlZ1eb","x":519,"y":326,"r":4,"fillStyle":"#333","junction":{"x":519,"y":322}},"right-knot-hlZ1eb":{"id":"right-knot-hlZ1eb","x":595,"y":422,"r":4,"fillStyle":"#333","junction":{"x":599,"y":422}},"bottom-knot-hlZ1eb":{"id":"bottom-knot-hlZ1eb","x":519,"y":518,"r":4,"fillStyle":"#333","junction":{"x":519,"y":522}},"left-knot-hlZ1eb":{"id":"left-knot-hlZ1eb","x":443,"y":422,"r":4,"fillStyle":"#333","junction":{"x":439,"y":422}}},"lines":{"length":0},"ishover":false}},"lines":{"Line-80JVkr":{"_hash":"80JVkr","id":"Line-80JVkr","from":{"box":{"_hash":"hlZ1eb","id":"box-hlZ1eb","ctx":{},"x":439,"y":322,"w":160,"topH":150,"bottomH":50,"topBg":"orange","bottomBg":"#b4b4b4","borderRadius":0,"knots":{"top-knot-hlZ1eb":{"id":"top-knot-hlZ1eb","x":519,"y":326,"r":4,"fillStyle":"#333","junction":{"x":519,"y":322}},"right-knot-hlZ1eb":{"id":"right-knot-hlZ1eb","x":595,"y":422,"r":4,"fillStyle":"#333","junction":{"x":599,"y":422}},"bottom-knot-hlZ1eb":{"id":"bottom-knot-hlZ1eb","x":519,"y":518,"r":4,"fillStyle":"#333","junction":{"x":519,"y":522}},"left-knot-hlZ1eb":{"id":"left-knot-hlZ1eb","x":443,"y":422,"r":4,"fillStyle":"#333","junction":{"x":439,"y":422}}},"lines":{"length":0},"ishover":false},"knot":{"id":"left-knot-hlZ1eb","x":443,"y":422,"r":4,"fillStyle":"red","junction":{"x":439,"y":422}}},"to":{"box":{"_hash":"OE4D9D","id":"box-OE4D9D","ctx":{},"x":200,"y":200,"w":160,"topH":150,"bottomH":50,"topBg":"pink","bottomBg":"#b4b4b4","borderRadius":0,"knots":{"top-knot-OE4D9D":{"id":"top-knot-OE4D9D","x":280,"y":204,"r":4,"fillStyle":"#333","junction":{"x":280,"y":200}},"right-knot-OE4D9D":{"id":"right-knot-OE4D9D","x":356,"y":300,"r":4,"fillStyle":"#333","junction":{"x":360,"y":300}},"bottom-knot-OE4D9D":{"id":"bottom-knot-OE4D9D","x":280,"y":396,"r":4,"fillStyle":"#333","junction":{"x":280,"y":400}},"left-knot-OE4D9D":{"id":"left-knot-OE4D9D","x":204,"y":300,"r":4,"fillStyle":"#333","junction":{"x":200,"y":300}}},"lines":{"length":0},"ishover":false},"knot":{"id":"top-knot-OE4D9D","x":280,"y":204,"r":4,"fillStyle":"red","junction":{"x":280,"y":200}}},"start":{"x":439,"y":422},"end":{"x":281,"y":201}},"Line-T0eRDP":{"_hash":"T0eRDP","id":"Line-T0eRDP","from":{"box":{"_hash":"OE4D9D","id":"box-OE4D9D","ctx":{},"x":200,"y":200,"w":160,"topH":150,"bottomH":50,"topBg":"pink","bottomBg":"#b4b4b4","borderRadius":0,"knots":{"top-knot-OE4D9D":{"id":"top-knot-OE4D9D","x":280,"y":204,"r":4,"fillStyle":"#333","junction":{"x":280,"y":200}},"right-knot-OE4D9D":{"id":"right-knot-OE4D9D","x":356,"y":300,"r":4,"fillStyle":"#333","junction":{"x":360,"y":300}},"bottom-knot-OE4D9D":{"id":"bottom-knot-OE4D9D","x":280,"y":396,"r":4,"fillStyle":"#333","junction":{"x":280,"y":400}},"left-knot-OE4D9D":{"id":"left-knot-OE4D9D","x":204,"y":300,"r":4,"fillStyle":"#333","junction":{"x":200,"y":300}}},"lines":{"length":0},"ishover":false},"knot":{"id":"top-knot-OE4D9D","x":280,"y":204,"r":4,"fillStyle":"#333","junction":{"x":280,"y":200}}},"to":{"box":{"_hash":"PmZOn1","id":"box-PmZOn1","ctx":{},"x":150,"y":150,"w":160,"topH":150,"bottomH":50,"topBg":"red","bottomBg":"#b4b4b4","borderRadius":0,"knots":{"top-knot-PmZOn1":{"id":"top-knot-PmZOn1","x":230,"y":154,"r":4,"fillStyle":"#333","junction":{"x":230,"y":150}},"right-knot-PmZOn1":{"id":"right-knot-PmZOn1","x":306,"y":250,"r":4,"fillStyle":"#333","junction":{"x":310,"y":250}},"bottom-knot-PmZOn1":{"id":"bottom-knot-PmZOn1","x":230,"y":346,"r":4,"fillStyle":"#333","junction":{"x":230,"y":350}},"left-knot-PmZOn1":{"id":"left-knot-PmZOn1","x":154,"y":250,"r":4,"fillStyle":"#333","junction":{"x":150,"y":250}}},"lines":{"length":0},"ishover":false},"knot":{"id":"top-knot-PmZOn1","x":230,"y":154,"r":4,"fillStyle":"red","junction":{"x":230,"y":150}}},"start":{"x":280,"y":200},"end":{"x":228,"y":157}}}}
-      ctx.clearRect(0, 0, cv.width, cv.height);
+      ctx1.clearRect(0, 0, cv1.width, cv1.height);
       
       const mapping = {
         'boxes': function(data){ 
           let {x,y,w,topH,bottomH,topBg,bottomBg,borderRadius} = data
+          let ctx = ctx1
           o = new Box({x,y,w,topH,bottomH,topBg,bottomBg,borderRadius, ctx})
           o.draw()
         },
         'lines': function(data){
           console.log(data)
           let { id, from, to, start, end } = data
-          o = new Line({id, from, to, start, end})
+          o = new Line({ctx:ctx1, id, from, to, start, end})
           o.draw()
         }
       }
@@ -396,16 +400,14 @@
 
     function copy2Ctx2(){
       // console.log(O.optBox)
-      ctx2.clearRect(0, 0, cv.width, cv.height);
+      ctx2.clearRect(0, 0, cv1.width, cv1.height);
       if( O.optBox ){
         let ctx = ctx2;
         let { w, topH, bottomH, topBg, bottomBg, borderRadius } = O.optBox;
         let x = mousePos2.x - w/2;
         let y = mousePos2.y - (topH + bottomH)/2
         /** 
-         * TODO:  1
-         * 1. 拖拽后初始化对象: x, y是鼠标在cv上位置坐标
-         *    鼠标位置在新对象的中心点
+         * TODO:  
          * 2. 跟随鼠标移动
          * 3. 鼠标在 cv2上mosup, 在cv上mosup
         */
@@ -426,9 +428,7 @@
       O.hoverBox.transform({ ishover: false });
       O.hoverBox = null
       refresh()
-      // console.log(1)
     })
-
     /*
       var yImg = new Image();
       yImg.src = './arcTo.png';
@@ -436,7 +436,7 @@
         draw(this)
       }
       function draw(obj){
-        ctx.drawImage(obj, 100, 50) 
+        ctx1.drawImage(obj, 100, 50) 
       }
     */
 

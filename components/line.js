@@ -2,6 +2,7 @@
   function Line(params){
     this._hash = params.id ? params.id.split('-')[1] : T.genKey();
     this.id = 'Line-' + this._hash;
+    this.ctx = params.ctx;
     this.from = params.from || '';
     this.to = params.to || '';
     this.start = params.start || '';
@@ -50,18 +51,18 @@
       let xB2 = Math.cos(radB2)*lenB;
       let yB2 = startY - Math.sin(radB2)*lenB;
 
-      ctx.moveTo(startX, startY)
-      ctx.lineTo( (xB1 +xB2 + 2*startX)/2, (yB1+yB2)/2 )
-      ctx.lineTo( xB1 + startX, yB1 )
-      ctx.lineTo( endX, endY )
-      ctx.lineTo( xB2 + startX, yB2 )
-      ctx.lineTo( (xB1 + xB2 + 2*startX)/2, (yB1+yB2)/2 )
+      this.ctx.moveTo(startX, startY)
+      this.ctx.lineTo( (xB1 +xB2 + 2*startX)/2, (yB1+yB2)/2 )
+      this.ctx.lineTo( xB1 + startX, yB1 )
+      this.ctx.lineTo( endX, endY )
+      this.ctx.lineTo( xB2 + startX, yB2 )
+      this.ctx.lineTo( (xB1 + xB2 + 2*startX)/2, (yB1+yB2)/2 )
     },
     drawLine: function(params){
-      ctx.beginPath()
+      this.ctx.beginPath()
       this.linePath(params)
-      ctx.stroke()
-      ctx.closePath()
+      this.ctx.stroke()
+      this.ctx.closePath()
     },
     transform: function(params){
       let { start, to } = params;
