@@ -13,9 +13,10 @@
   }
   body{
     margin: 0;
+    /* user-select:none */
   }
 
-  #canvas{
+  #canvas, #canvas2{
     background: #eee;
   }
 
@@ -28,14 +29,26 @@
     word-break: break-all;
 
   }
+  #cvs{
+    user-select:none
+  }
   </style>
 </head>
 <body>
-  <canvas id='canvas' height="800" width="1500">
-    哥,你的浏览器太旧了
-  </canvas>
-  <button id='btn1'>保存</button>
-  <button id='btn2'>加载</button>
+  <div id="cvs">
+    <canvas id='canvas' height="800" width="800">
+      哥,你的浏览器太旧了
+    </canvas>
+    <canvas id='canvas2' height="800" width="800">
+      哥,你的浏览器太旧了
+    </canvas>
+  </div>
+  
+  <div> 
+    <button id='btn1'>保存</button>
+    <button id='btn2'>加载</button>
+  </div>
+ 
   <pre id='code'></pre>
 
 
@@ -54,11 +67,19 @@
      *    doc鼠标抬起: mosdown = false, mosup = true
      *                isDrag = false, STATE.isDrawLine = false;
      *                O.optBox = null, O.optKnot = null;
+     * 
+     * // TODO:  
+      // 连线时候的吸附功能
     */
     let cv = document.getElementById('canvas');
     let ctx = cv.getContext('2d');
+
+    let cv2 = document.getElementById('canvas2')
+    let ctx2 = cv2.getContext('2d');
+
     // 获取鼠标在canvas上的坐标
-    let mousePos = T.getMousePos(cv)
+    let mousePos = T.getMousePos(cv);
+    let mousePos2 = T.getMousePos(cv2);
 
     let save = document.getElementById('btn1');
     let load = document.getElementById('btn2');
@@ -69,14 +90,15 @@
 
     let O = {
       boxes:[],
-      boxes1: {},
+      boxes1:{},
       knots:{},
       lines:{},
       hoverBox:null,
       hoverKnot:null,
       optBox: null,
       optKnot: null,
-      tempLine: null
+      tempLine: null,
+      trash: null
     }
     let STATE = {
       mosdown:false,
@@ -85,11 +107,11 @@
       isDrawLine: false,
     }
   
-    let box1 = new TitleBox({x:100, y:100})
-    let box2 = new Box({x:150, y:150, topBg:'red'})
-    let box3 = new Box({x:200, y:200, topBg:'pink'})
-    let box4 = new Box({x:250, y:250, topBg:'yellow'})
-    let box5 = new Box({x:300, y:300, topBg:'orange'})
+    let box1 = new TitleBox({x:100, y:100,ctx:ctx})
+    let box2 = new Box({x:150, y:150, topBg:'red',ctx:ctx})
+    let box3 = new Box({x:200, y:200, topBg:'pink',ctx:ctx})
+    let box4 = new Box({x:250, y:250, topBg:'yellow',ctx:ctx})
+    let box5 = new Box({x:300, y:300, topBg:'orange',ctx:ctx})
     O.boxes1[box1.id] = box1;
     O.boxes1[box2.id] = box2;
     O.boxes1[box3.id] = box3;
@@ -102,9 +124,6 @@
     O.boxes.push(box3)
     O.boxes.push(box4)
     O.boxes.push(box5)
-
-    // 初始化的时候遍历 box， O.knots 和 O.lines中添加对象
-    // 连线后向 O.lines 中添加
 
 
     /** 
@@ -123,21 +142,23 @@
         O.optKnot = O.hoverBox.knots[knotActive.id] 
         O.tempLine = new Line({})
       }
-      
 
       //  设置 STATE: drag drawLine
-      if(posOnObj){ dragOrLine( posOnObj ) }                  // 1
+      if(posOnObj){ dragOrLine( posOnObj ) }           
       let opts = options(posOnObj)
 
       cv.addEventListener('mousemove', opts)
       cv.addEventListener('mouseup', ()=>{
         cv.removeEventListener('mousemove', opts)
       })
+      cv.addEventListener('mouseout', ()=>{
+        cv.removeEventListener('mousemove', opts)
+      })
     })  // mousedown END
 
     
     function options(posOnObj){
-      return function(){          // 2
+      return function(){    
         if(STATE.isDrag){                       
           O.optBox.transform({
             x: mousePos.x - posOnObj.x,
@@ -201,11 +222,8 @@
     })
 
     cv.addEventListener('mouseup', ()=>{
-      // TODO:  
-      // 吸附功能
       if( !O.hoverKnot ){ return }
       if( O.optBox.id === O.hoverBox.id ){ return }
-
 
       let line1 = new Line({
         from: {
@@ -213,7 +231,7 @@
           knot: O.optKnot
         },
         to: {
-          box:O.hoverBox,
+          box: O.hoverBox,
           knot: O.hoverKnot
         },
         start : {
@@ -226,10 +244,14 @@
         }
       })
       O.lines[line1.id] = line1;
+      // FIXME: 拖拽时，鼠标如果是在 canvas 外部释放，则还原 box 的位置
     })
        
    
-    document.addEventListener('mouseup', ()=>{ 
+    document.addEventListener('mousemove', function(){})
+
+
+    document.addEventListener('mouseup', (ev)=>{ 
       STATE.mosdown = false;
       STATE.mosup = true;
 
@@ -240,6 +262,10 @@
       O.optKnot = null;
 
       O.tempLine = null;
+
+      console.log(O, STATE)
+
+      
     })
     
     /**
@@ -339,660 +365,24 @@
       res.boxes = O.boxes1;
       res.lines = O.lines;
       
-      code.innerHTML = JSON.stringify(res, null, 2)
+      // code.innerHTML = JSON.stringify(res, null, 2)
+      code.innerHTML = JSON.stringify(res)
     }
 
     load.onclick = function(){
       let o;
-      let data = {
-        "boxes": {
-          "box-IGuLlT": {
-            "_hash": "IGuLlT",
-            "id": "box-IGuLlT",
-            "x": 100,
-            "y": 100,
-            "w": 160,
-            "topH": 150,
-            "bottomH": 50,
-            "topBg": "#fff",
-            "bottomBg": "#b4b4b4",
-            "borderRadius": 0,
-            "knots": {
-              "top-knot-IGuLlT": {
-                "id": "top-knot-IGuLlT",
-                "x": 180,
-                "y": 104,
-                "r": 4,
-                "fillStyle": "#333",
-                "junction": {
-                  "x": 180,
-                  "y": 100
-                }
-              },
-              "right-knot-IGuLlT": {
-                "id": "right-knot-IGuLlT",
-                "x": 256,
-                "y": 200,
-                "r": 4,
-                "fillStyle": "#333",
-                "junction": {
-                  "x": 260,
-                  "y": 200
-                }
-              },
-              "bottom-knot-IGuLlT": {
-                "id": "bottom-knot-IGuLlT",
-                "x": 180,
-                "y": 296,
-                "r": 4,
-                "fillStyle": "#333",
-                "junction": {
-                  "x": 180,
-                  "y": 300
-                }
-              },
-              "left-knot-IGuLlT": {
-                "id": "left-knot-IGuLlT",
-                "x": 104,
-                "y": 200,
-                "r": 4,
-                "fillStyle": "#333",
-                "junction": {
-                  "x": 100,
-                  "y": 200
-                }
-              }
-            },
-            "lines": {
-              "length": 0
-            },
-            "ishover": false
-          },
-          "box-NjLrFt": {
-            "_hash": "NjLrFt",
-            "id": "box-NjLrFt",
-            "x": 142,
-            "y": 142,
-            "w": 160,
-            "topH": 150,
-            "bottomH": 50,
-            "topBg": "red",
-            "bottomBg": "#b4b4b4",
-            "borderRadius": 0,
-            "knots": {
-              "top-knot-NjLrFt": {
-                "id": "top-knot-NjLrFt",
-                "x": 222,
-                "y": 146,
-                "r": 4,
-                "fillStyle": "#333",
-                "junction": {
-                  "x": 222,
-                  "y": 142
-                }
-              },
-              "right-knot-NjLrFt": {
-                "id": "right-knot-NjLrFt",
-                "x": 298,
-                "y": 242,
-                "r": 4,
-                "fillStyle": "#333",
-                "junction": {
-                  "x": 302,
-                  "y": 242
-                }
-              },
-              "bottom-knot-NjLrFt": {
-                "id": "bottom-knot-NjLrFt",
-                "x": 222,
-                "y": 338,
-                "r": 4,
-                "fillStyle": "#333",
-                "junction": {
-                  "x": 222,
-                  "y": 342
-                }
-              },
-              "left-knot-NjLrFt": {
-                "id": "left-knot-NjLrFt",
-                "x": 146,
-                "y": 242,
-                "r": 4,
-                "fillStyle": "#333",
-                "junction": {
-                  "x": 142,
-                  "y": 242
-                }
-              }
-            },
-            "lines": {
-              "length": 0
-            },
-            "ishover": false
-          },
-          "box-VpA95C": {
-            "_hash": "VpA95C",
-            "id": "box-VpA95C",
-            "x": 200,
-            "y": 200,
-            "w": 160,
-            "topH": 150,
-            "bottomH": 50,
-            "topBg": "pink",
-            "bottomBg": "#b4b4b4",
-            "borderRadius": 0,
-            "knots": {
-              "top-knot-VpA95C": {
-                "id": "top-knot-VpA95C",
-                "x": 280,
-                "y": 204,
-                "r": 4,
-                "fillStyle": "#333",
-                "junction": {
-                  "x": 280,
-                  "y": 200
-                }
-              },
-              "right-knot-VpA95C": {
-                "id": "right-knot-VpA95C",
-                "x": 356,
-                "y": 300,
-                "r": 4,
-                "fillStyle": "#333",
-                "junction": {
-                  "x": 360,
-                  "y": 300
-                }
-              },
-              "bottom-knot-VpA95C": {
-                "id": "bottom-knot-VpA95C",
-                "x": 280,
-                "y": 396,
-                "r": 4,
-                "fillStyle": "#333",
-                "junction": {
-                  "x": 280,
-                  "y": 400
-                }
-              },
-              "left-knot-VpA95C": {
-                "id": "left-knot-VpA95C",
-                "x": 204,
-                "y": 300,
-                "r": 4,
-                "fillStyle": "#333",
-                "junction": {
-                  "x": 200,
-                  "y": 300
-                }
-              }
-            },
-            "lines": {
-              "length": 0
-            },
-            "ishover": false
-          },
-          "box-JSItmn": {
-            "_hash": "JSItmn",
-            "id": "box-JSItmn",
-            "x": 250,
-            "y": 250,
-            "w": 160,
-            "topH": 150,
-            "bottomH": 50,
-            "topBg": "yellow",
-            "bottomBg": "#b4b4b4",
-            "borderRadius": 0,
-            "knots": {
-              "top-knot-JSItmn": {
-                "id": "top-knot-JSItmn",
-                "x": 330,
-                "y": 254,
-                "r": 4,
-                "fillStyle": "#333",
-                "junction": {
-                  "x": 330,
-                  "y": 250
-                }
-              },
-              "right-knot-JSItmn": {
-                "id": "right-knot-JSItmn",
-                "x": 406,
-                "y": 350,
-                "r": 4,
-                "fillStyle": "#333",
-                "junction": {
-                  "x": 410,
-                  "y": 350
-                }
-              },
-              "bottom-knot-JSItmn": {
-                "id": "bottom-knot-JSItmn",
-                "x": 330,
-                "y": 446,
-                "r": 4,
-                "fillStyle": "#333",
-                "junction": {
-                  "x": 330,
-                  "y": 450
-                }
-              },
-              "left-knot-JSItmn": {
-                "id": "left-knot-JSItmn",
-                "x": 254,
-                "y": 350,
-                "r": 4,
-                "fillStyle": "#333",
-                "junction": {
-                  "x": 250,
-                  "y": 350
-                }
-              }
-            },
-            "lines": {
-              "length": 0
-            },
-            "ishover": false
-          },
-          "box-5DduqJ": {
-            "_hash": "5DduqJ",
-            "id": "box-5DduqJ",
-            "x": 780,
-            "y": 406,
-            "w": 160,
-            "topH": 150,
-            "bottomH": 50,
-            "topBg": "orange",
-            "bottomBg": "#b4b4b4",
-            "borderRadius": 0,
-            "knots": {
-              "top-knot-5DduqJ": {
-                "id": "top-knot-5DduqJ",
-                "x": 860,
-                "y": 410,
-                "r": 4,
-                "fillStyle": "#333",
-                "junction": {
-                  "x": 860,
-                  "y": 406
-                }
-              },
-              "right-knot-5DduqJ": {
-                "id": "right-knot-5DduqJ",
-                "x": 936,
-                "y": 506,
-                "r": 4,
-                "fillStyle": "#333",
-                "junction": {
-                  "x": 940,
-                  "y": 506
-                }
-              },
-              "bottom-knot-5DduqJ": {
-                "id": "bottom-knot-5DduqJ",
-                "x": 860,
-                "y": 602,
-                "r": 4,
-                "fillStyle": "#333",
-                "junction": {
-                  "x": 860,
-                  "y": 606
-                }
-              },
-              "left-knot-5DduqJ": {
-                "id": "left-knot-5DduqJ",
-                "x": 784,
-                "y": 506,
-                "r": 4,
-                "fillStyle": "#333",
-                "junction": {
-                  "x": 780,
-                  "y": 506
-                }
-              }
-            },
-            "lines": {
-              "length": 0
-            },
-            "ishover": false
-          }
-        },
-        "lines": {
-          "Line-et3vmu": {
-            "_hash": "et3vmu",
-            "id": "Line-et3vmu",
-            "from": {
-              "box": {
-                "_hash": "5DduqJ",
-                "id": "box-5DduqJ",
-                "x": 780,
-                "y": 406,
-                "w": 160,
-                "topH": 150,
-                "bottomH": 50,
-                "topBg": "orange",
-                "bottomBg": "#b4b4b4",
-                "borderRadius": 0,
-                "knots": {
-                  "top-knot-5DduqJ": {
-                    "id": "top-knot-5DduqJ",
-                    "x": 860,
-                    "y": 410,
-                    "r": 4,
-                    "fillStyle": "#333",
-                    "junction": {
-                      "x": 860,
-                      "y": 406
-                    }
-                  },
-                  "right-knot-5DduqJ": {
-                    "id": "right-knot-5DduqJ",
-                    "x": 936,
-                    "y": 506,
-                    "r": 4,
-                    "fillStyle": "#333",
-                    "junction": {
-                      "x": 940,
-                      "y": 506
-                    }
-                  },
-                  "bottom-knot-5DduqJ": {
-                    "id": "bottom-knot-5DduqJ",
-                    "x": 860,
-                    "y": 602,
-                    "r": 4,
-                    "fillStyle": "#333",
-                    "junction": {
-                      "x": 860,
-                      "y": 606
-                    }
-                  },
-                  "left-knot-5DduqJ": {
-                    "id": "left-knot-5DduqJ",
-                    "x": 784,
-                    "y": 506,
-                    "r": 4,
-                    "fillStyle": "#333",
-                    "junction": {
-                      "x": 780,
-                      "y": 506
-                    }
-                  }
-                },
-                "lines": {
-                  "length": 0
-                },
-                "ishover": false
-              },
-              "knot": {
-                "id": "left-knot-5DduqJ",
-                "x": 784,
-                "y": 506,
-                "r": 4,
-                "fillStyle": "red",
-                "junction": {
-                  "x": 780,
-                  "y": 506
-                }
-              }
-            },
-            "to": {
-              "box": {
-                "_hash": "JSItmn",
-                "id": "box-JSItmn",
-                "x": 250,
-                "y": 250,
-                "w": 160,
-                "topH": 150,
-                "bottomH": 50,
-                "topBg": "yellow",
-                "bottomBg": "#b4b4b4",
-                "borderRadius": 0,
-                "knots": {
-                  "top-knot-JSItmn": {
-                    "id": "top-knot-JSItmn",
-                    "x": 330,
-                    "y": 254,
-                    "r": 4,
-                    "fillStyle": "#333",
-                    "junction": {
-                      "x": 330,
-                      "y": 250
-                    }
-                  },
-                  "right-knot-JSItmn": {
-                    "id": "right-knot-JSItmn",
-                    "x": 406,
-                    "y": 350,
-                    "r": 4,
-                    "fillStyle": "#333",
-                    "junction": {
-                      "x": 410,
-                      "y": 350
-                    }
-                  },
-                  "bottom-knot-JSItmn": {
-                    "id": "bottom-knot-JSItmn",
-                    "x": 330,
-                    "y": 446,
-                    "r": 4,
-                    "fillStyle": "#333",
-                    "junction": {
-                      "x": 330,
-                      "y": 450
-                    }
-                  },
-                  "left-knot-JSItmn": {
-                    "id": "left-knot-JSItmn",
-                    "x": 254,
-                    "y": 350,
-                    "r": 4,
-                    "fillStyle": "#333",
-                    "junction": {
-                      "x": 250,
-                      "y": 350
-                    }
-                  }
-                },
-                "lines": {
-                  "length": 0
-                },
-                "ishover": false
-              },
-              "knot": {
-                "id": "right-knot-JSItmn",
-                "x": 406,
-                "y": 350,
-                "r": 4,
-                "fillStyle": "red",
-                "junction": {
-                  "x": 410,
-                  "y": 350
-                }
-              }
-            },
-            "start": {
-              "x": 780,
-              "y": 506
-            },
-            "end": {
-              "x": 406,
-              "y": 353
-            },
-            "lines": {
-              "length": 1,
-              "Line-et3vmu": {
-                "id": "Line-et3vmu",
-                "startX": 780,
-                "startY": 506,
-                "endX": 406,
-                "endY": 353,
-                "from": {
-                  "box": {
-                    "_hash": "5DduqJ",
-                    "id": "box-5DduqJ",
-                    "x": 780,
-                    "y": 406,
-                    "w": 160,
-                    "topH": 150,
-                    "bottomH": 50,
-                    "topBg": "orange",
-                    "bottomBg": "#b4b4b4",
-                    "borderRadius": 0,
-                    "knots": {
-                      "top-knot-5DduqJ": {
-                        "id": "top-knot-5DduqJ",
-                        "x": 860,
-                        "y": 410,
-                        "r": 4,
-                        "fillStyle": "#333",
-                        "junction": {
-                          "x": 860,
-                          "y": 406
-                        }
-                      },
-                      "right-knot-5DduqJ": {
-                        "id": "right-knot-5DduqJ",
-                        "x": 936,
-                        "y": 506,
-                        "r": 4,
-                        "fillStyle": "#333",
-                        "junction": {
-                          "x": 940,
-                          "y": 506
-                        }
-                      },
-                      "bottom-knot-5DduqJ": {
-                        "id": "bottom-knot-5DduqJ",
-                        "x": 860,
-                        "y": 602,
-                        "r": 4,
-                        "fillStyle": "#333",
-                        "junction": {
-                          "x": 860,
-                          "y": 606
-                        }
-                      },
-                      "left-knot-5DduqJ": {
-                        "id": "left-knot-5DduqJ",
-                        "x": 784,
-                        "y": 506,
-                        "r": 4,
-                        "fillStyle": "#333",
-                        "junction": {
-                          "x": 780,
-                          "y": 506
-                        }
-                      }
-                    },
-                    "lines": {
-                      "length": 0
-                    },
-                    "ishover": false
-                  },
-                  "knot": {
-                    "id": "left-knot-5DduqJ",
-                    "x": 784,
-                    "y": 506,
-                    "r": 4,
-                    "fillStyle": "red",
-                    "junction": {
-                      "x": 780,
-                      "y": 506
-                    }
-                  }
-                },
-                "to": {
-                  "box": {
-                    "_hash": "JSItmn",
-                    "id": "box-JSItmn",
-                    "x": 250,
-                    "y": 250,
-                    "w": 160,
-                    "topH": 150,
-                    "bottomH": 50,
-                    "topBg": "yellow",
-                    "bottomBg": "#b4b4b4",
-                    "borderRadius": 0,
-                    "knots": {
-                      "top-knot-JSItmn": {
-                        "id": "top-knot-JSItmn",
-                        "x": 330,
-                        "y": 254,
-                        "r": 4,
-                        "fillStyle": "#333",
-                        "junction": {
-                          "x": 330,
-                          "y": 250
-                        }
-                      },
-                      "right-knot-JSItmn": {
-                        "id": "right-knot-JSItmn",
-                        "x": 406,
-                        "y": 350,
-                        "r": 4,
-                        "fillStyle": "#333",
-                        "junction": {
-                          "x": 410,
-                          "y": 350
-                        }
-                      },
-                      "bottom-knot-JSItmn": {
-                        "id": "bottom-knot-JSItmn",
-                        "x": 330,
-                        "y": 446,
-                        "r": 4,
-                        "fillStyle": "#333",
-                        "junction": {
-                          "x": 330,
-                          "y": 450
-                        }
-                      },
-                      "left-knot-JSItmn": {
-                        "id": "left-knot-JSItmn",
-                        "x": 254,
-                        "y": 350,
-                        "r": 4,
-                        "fillStyle": "#333",
-                        "junction": {
-                          "x": 250,
-                          "y": 350
-                        }
-                      }
-                    },
-                    "lines": {
-                      "length": 0
-                    },
-                    "ishover": false
-                  },
-                  "knot": {
-                    "id": "right-knot-JSItmn",
-                    "x": 406,
-                    "y": 350,
-                    "r": 4,
-                    "fillStyle": "red",
-                    "junction": {
-                      "x": 410,
-                      "y": 350
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+      let data = {"boxes":{"box-iJgbBP":{"_hash":"iJgbBP","id":"box-iJgbBP","ctx":{},"x":100,"y":100,"w":160,"topH":150,"bottomH":50,"topBg":"#fff","bottomBg":"#b4b4b4","borderRadius":0,"knots":{"top-knot-iJgbBP":{"id":"top-knot-iJgbBP","x":180,"y":104,"r":4,"fillStyle":"#333","junction":{"x":180,"y":100}},"right-knot-iJgbBP":{"id":"right-knot-iJgbBP","x":256,"y":200,"r":4,"fillStyle":"#333","junction":{"x":260,"y":200}},"bottom-knot-iJgbBP":{"id":"bottom-knot-iJgbBP","x":180,"y":296,"r":4,"fillStyle":"#333","junction":{"x":180,"y":300}},"left-knot-iJgbBP":{"id":"left-knot-iJgbBP","x":104,"y":200,"r":4,"fillStyle":"#333","junction":{"x":100,"y":200}}},"lines":{"length":0},"ishover":false},"box-PmZOn1":{"_hash":"PmZOn1","id":"box-PmZOn1","ctx":{},"x":150,"y":150,"w":160,"topH":150,"bottomH":50,"topBg":"red","bottomBg":"#b4b4b4","borderRadius":0,"knots":{"top-knot-PmZOn1":{"id":"top-knot-PmZOn1","x":230,"y":154,"r":4,"fillStyle":"#333","junction":{"x":230,"y":150}},"right-knot-PmZOn1":{"id":"right-knot-PmZOn1","x":306,"y":250,"r":4,"fillStyle":"#333","junction":{"x":310,"y":250}},"bottom-knot-PmZOn1":{"id":"bottom-knot-PmZOn1","x":230,"y":346,"r":4,"fillStyle":"#333","junction":{"x":230,"y":350}},"left-knot-PmZOn1":{"id":"left-knot-PmZOn1","x":154,"y":250,"r":4,"fillStyle":"#333","junction":{"x":150,"y":250}}},"lines":{"length":0},"ishover":false},"box-OE4D9D":{"_hash":"OE4D9D","id":"box-OE4D9D","ctx":{},"x":200,"y":200,"w":160,"topH":150,"bottomH":50,"topBg":"pink","bottomBg":"#b4b4b4","borderRadius":0,"knots":{"top-knot-OE4D9D":{"id":"top-knot-OE4D9D","x":280,"y":204,"r":4,"fillStyle":"#333","junction":{"x":280,"y":200}},"right-knot-OE4D9D":{"id":"right-knot-OE4D9D","x":356,"y":300,"r":4,"fillStyle":"#333","junction":{"x":360,"y":300}},"bottom-knot-OE4D9D":{"id":"bottom-knot-OE4D9D","x":280,"y":396,"r":4,"fillStyle":"#333","junction":{"x":280,"y":400}},"left-knot-OE4D9D":{"id":"left-knot-OE4D9D","x":204,"y":300,"r":4,"fillStyle":"#333","junction":{"x":200,"y":300}}},"lines":{"length":0},"ishover":false},"box-JCEr7G":{"_hash":"JCEr7G","id":"box-JCEr7G","ctx":{},"x":127,"y":569,"w":160,"topH":150,"bottomH":50,"topBg":"yellow","bottomBg":"#b4b4b4","borderRadius":0,"knots":{"top-knot-JCEr7G":{"id":"top-knot-JCEr7G","x":207,"y":573,"r":4,"fillStyle":"#333","junction":{"x":207,"y":569}},"right-knot-JCEr7G":{"id":"right-knot-JCEr7G","x":283,"y":669,"r":4,"fillStyle":"#333","junction":{"x":287,"y":669}},"bottom-knot-JCEr7G":{"id":"bottom-knot-JCEr7G","x":207,"y":765,"r":4,"fillStyle":"#333","junction":{"x":207,"y":769}},"left-knot-JCEr7G":{"id":"left-knot-JCEr7G","x":131,"y":669,"r":4,"fillStyle":"#333","junction":{"x":127,"y":669}}},"lines":{"length":0},"ishover":false},"box-hlZ1eb":{"_hash":"hlZ1eb","id":"box-hlZ1eb","ctx":{},"x":439,"y":322,"w":160,"topH":150,"bottomH":50,"topBg":"orange","bottomBg":"#b4b4b4","borderRadius":0,"knots":{"top-knot-hlZ1eb":{"id":"top-knot-hlZ1eb","x":519,"y":326,"r":4,"fillStyle":"#333","junction":{"x":519,"y":322}},"right-knot-hlZ1eb":{"id":"right-knot-hlZ1eb","x":595,"y":422,"r":4,"fillStyle":"#333","junction":{"x":599,"y":422}},"bottom-knot-hlZ1eb":{"id":"bottom-knot-hlZ1eb","x":519,"y":518,"r":4,"fillStyle":"#333","junction":{"x":519,"y":522}},"left-knot-hlZ1eb":{"id":"left-knot-hlZ1eb","x":443,"y":422,"r":4,"fillStyle":"#333","junction":{"x":439,"y":422}}},"lines":{"length":0},"ishover":false}},"lines":{"Line-80JVkr":{"_hash":"80JVkr","id":"Line-80JVkr","from":{"box":{"_hash":"hlZ1eb","id":"box-hlZ1eb","ctx":{},"x":439,"y":322,"w":160,"topH":150,"bottomH":50,"topBg":"orange","bottomBg":"#b4b4b4","borderRadius":0,"knots":{"top-knot-hlZ1eb":{"id":"top-knot-hlZ1eb","x":519,"y":326,"r":4,"fillStyle":"#333","junction":{"x":519,"y":322}},"right-knot-hlZ1eb":{"id":"right-knot-hlZ1eb","x":595,"y":422,"r":4,"fillStyle":"#333","junction":{"x":599,"y":422}},"bottom-knot-hlZ1eb":{"id":"bottom-knot-hlZ1eb","x":519,"y":518,"r":4,"fillStyle":"#333","junction":{"x":519,"y":522}},"left-knot-hlZ1eb":{"id":"left-knot-hlZ1eb","x":443,"y":422,"r":4,"fillStyle":"#333","junction":{"x":439,"y":422}}},"lines":{"length":0},"ishover":false},"knot":{"id":"left-knot-hlZ1eb","x":443,"y":422,"r":4,"fillStyle":"red","junction":{"x":439,"y":422}}},"to":{"box":{"_hash":"OE4D9D","id":"box-OE4D9D","ctx":{},"x":200,"y":200,"w":160,"topH":150,"bottomH":50,"topBg":"pink","bottomBg":"#b4b4b4","borderRadius":0,"knots":{"top-knot-OE4D9D":{"id":"top-knot-OE4D9D","x":280,"y":204,"r":4,"fillStyle":"#333","junction":{"x":280,"y":200}},"right-knot-OE4D9D":{"id":"right-knot-OE4D9D","x":356,"y":300,"r":4,"fillStyle":"#333","junction":{"x":360,"y":300}},"bottom-knot-OE4D9D":{"id":"bottom-knot-OE4D9D","x":280,"y":396,"r":4,"fillStyle":"#333","junction":{"x":280,"y":400}},"left-knot-OE4D9D":{"id":"left-knot-OE4D9D","x":204,"y":300,"r":4,"fillStyle":"#333","junction":{"x":200,"y":300}}},"lines":{"length":0},"ishover":false},"knot":{"id":"top-knot-OE4D9D","x":280,"y":204,"r":4,"fillStyle":"red","junction":{"x":280,"y":200}}},"start":{"x":439,"y":422},"end":{"x":281,"y":201}},"Line-T0eRDP":{"_hash":"T0eRDP","id":"Line-T0eRDP","from":{"box":{"_hash":"OE4D9D","id":"box-OE4D9D","ctx":{},"x":200,"y":200,"w":160,"topH":150,"bottomH":50,"topBg":"pink","bottomBg":"#b4b4b4","borderRadius":0,"knots":{"top-knot-OE4D9D":{"id":"top-knot-OE4D9D","x":280,"y":204,"r":4,"fillStyle":"#333","junction":{"x":280,"y":200}},"right-knot-OE4D9D":{"id":"right-knot-OE4D9D","x":356,"y":300,"r":4,"fillStyle":"#333","junction":{"x":360,"y":300}},"bottom-knot-OE4D9D":{"id":"bottom-knot-OE4D9D","x":280,"y":396,"r":4,"fillStyle":"#333","junction":{"x":280,"y":400}},"left-knot-OE4D9D":{"id":"left-knot-OE4D9D","x":204,"y":300,"r":4,"fillStyle":"#333","junction":{"x":200,"y":300}}},"lines":{"length":0},"ishover":false},"knot":{"id":"top-knot-OE4D9D","x":280,"y":204,"r":4,"fillStyle":"#333","junction":{"x":280,"y":200}}},"to":{"box":{"_hash":"PmZOn1","id":"box-PmZOn1","ctx":{},"x":150,"y":150,"w":160,"topH":150,"bottomH":50,"topBg":"red","bottomBg":"#b4b4b4","borderRadius":0,"knots":{"top-knot-PmZOn1":{"id":"top-knot-PmZOn1","x":230,"y":154,"r":4,"fillStyle":"#333","junction":{"x":230,"y":150}},"right-knot-PmZOn1":{"id":"right-knot-PmZOn1","x":306,"y":250,"r":4,"fillStyle":"#333","junction":{"x":310,"y":250}},"bottom-knot-PmZOn1":{"id":"bottom-knot-PmZOn1","x":230,"y":346,"r":4,"fillStyle":"#333","junction":{"x":230,"y":350}},"left-knot-PmZOn1":{"id":"left-knot-PmZOn1","x":154,"y":250,"r":4,"fillStyle":"#333","junction":{"x":150,"y":250}}},"lines":{"length":0},"ishover":false},"knot":{"id":"top-knot-PmZOn1","x":230,"y":154,"r":4,"fillStyle":"red","junction":{"x":230,"y":150}}},"start":{"x":280,"y":200},"end":{"x":228,"y":157}}}}
       ctx.clearRect(0, 0, cv.width, cv.height);
       
       const mapping = {
         'boxes': function(data){ 
           let {x,y,w,topH,bottomH,topBg,bottomBg,borderRadius} = data
-          o = new Box({x,y,w,topH,bottomH,topBg,bottomBg,borderRadius})
+          o = new Box({x,y,w,topH,bottomH,topBg,bottomBg,borderRadius, ctx})
           o.draw()
         },
         'lines': function(data){
           console.log(data)
-          let {id, from, to, start, end} = data
+          let { id, from, to, start, end } = data
           o = new Line({id, from, to, start, end})
           o.draw()
         }
@@ -1003,6 +393,41 @@
         }
       }
     }
+
+    function copy2Ctx2(){
+      // console.log(O.optBox)
+      ctx2.clearRect(0, 0, cv.width, cv.height);
+      if( O.optBox ){
+        let ctx = ctx2;
+        let { w, topH, bottomH, topBg, bottomBg, borderRadius } = O.optBox;
+        let x = mousePos2.x - w/2;
+        let y = mousePos2.y - (topH + bottomH)/2
+        /** 
+         * TODO:  1
+         * 1. 拖拽后初始化对象: x, y是鼠标在cv上位置坐标
+         *    鼠标位置在新对象的中心点
+         * 2. 跟随鼠标移动
+         * 3. 鼠标在 cv2上mosup, 在cv上mosup
+        */
+        o = new Box({x, y, w, topH, bottomH, topBg, bottomBg, borderRadius, ctx})
+        o.draw()
+      }
+    }
+
+    cv2.addEventListener('mousemove', function(){
+      copy2Ctx2()
+    })
+  
+    cv2.addEventListener('mouseover', function(){
+      console.log(O, STATE)
+    })
+
+    cv2.addEventListener('mouseup', function(){
+      O.hoverBox.transform({ ishover: false });
+      O.hoverBox = null
+      refresh()
+      // console.log(1)
+    })
 
     /*
       var yImg = new Image();
@@ -1015,10 +440,6 @@
       }
     */
 
-
-    /*
-    {"boxes":{"box-eKs8Xr":{"_hash":"eKs8Xr","id":"box-eKs8Xr","x":100,"y":100,"w":160,"topH":150,"bottomH":50,"topBg":"#fff","bottomBg":"#b4b4b4","borderRadius":0,"knots":{},"lines":{"length":0},"ishover":false},"box-z6BJKF":{"_hash":"z6BJKF","id":"box-z6BJKF","x":150,"y":150,"w":160,"topH":150,"bottomH":50,"topBg":"red","bottomBg":"#b4b4b4","borderRadius":0,"knots":{},"lines":{"length":0},"ishover":false},"box-7TCfM0":{"_hash":"7TCfM0","id":"box-7TCfM0","x":200,"y":200,"w":160,"topH":150,"bottomH":50,"topBg":"pink","bottomBg":"#b4b4b4","borderRadius":0,"knots":{},"lines":{"length":0},"ishover":false},"box-ZLisJ0":{"_hash":"ZLisJ0","id":"box-ZLisJ0","x":250,"y":250,"w":160,"topH":150,"bottomH":50,"topBg":"yellow","bottomBg":"#b4b4b4","borderRadius":0,"knots":{},"lines":{"length":0},"ishover":false},"box-N20qJ3":{"_hash":"N20qJ3","id":"box-N20qJ3","x":300,"y":300,"w":160,"topH":150,"bottomH":50,"topBg":"orange","bottomBg":"#b4b4b4","borderRadius":0,"knots":{},"lines":{"length":0},"ishover":false}},"lines":{}}
-    */
 
   </script>
 </body>

@@ -47,6 +47,7 @@
   function Box(params){
     this._hash = params.id ? params.id.split('-')[1] : T.genKey();
     this.id = 'box-' + this._hash;
+    this.ctx = params.ctx;
     this.x = params.x || 0;
     this.y = params.y || 0;
     this.w = params.w || 160;
@@ -74,26 +75,27 @@
     },
     draw: function(){
       // box 上部分
-      ctx.save()
-      ctx.beginPath()
+      this.ctx.save()
+      this.ctx.beginPath()
       this.boxTopPath()
-      ctx.closePath()
-      ctx.fill()
-      ctx.restore()
+      this.ctx.closePath()
+      this.ctx.fill()
+      this.ctx.restore()
       
 
       // box 下部分
-      ctx.beginPath()
+      this.ctx.beginPath()
       this.boxBottomPath()
-      ctx.closePath()
-      ctx.fill()
+      this.ctx.closePath()
+      this.ctx.fill()
+      
       
       if(this.ishover){
         // 边框
-        ctx.beginPath()
+        this.ctx.beginPath()
         this.borderPath();
-        ctx.closePath()
-        ctx.stroke()
+        this.ctx.closePath()
+        this.ctx.stroke()
         // 接点
         this.drawKnot();
       }
@@ -109,12 +111,12 @@
 
       fillStyle = this.knots[id] ? this.knots[id].fillStyle : '#333';
 
-      ctx.globalAlpha = globalAlpha || .5;
-      ctx.fillStyle = fillStyle;
-      ctx.beginPath()
-      ctx.arc(x, y, r, rad1||0, rad2||360)
-      ctx.closePath()
-      ctx.fill()
+      this.ctx.globalAlpha = globalAlpha || .5;
+      this.ctx.fillStyle = fillStyle;
+      this.ctx.beginPath()
+      this.ctx.arc(x, y, r, rad1||0, rad2||360)
+      this.ctx.closePath()
+      this.ctx.fill()
 
       let knot = {}
 
@@ -132,7 +134,7 @@
       let h = topH + bottomH;
       let r = 4;
 
-      ctx.save()
+      this.ctx.save()
 
       this.knotPath({
         id: 'top-knot-' + this._hash,
@@ -177,7 +179,7 @@
           y: y+h/2
         }
       })
-      ctx.restore()
+      this.ctx.restore()
     },
     isPointKnot: function(pos){
       // 鼠标是否在连线点上
@@ -193,58 +195,58 @@
     boxTopPath: function(){
       let {x, y, w, topH, borderRadius, topBg} = this
     
-      ctx.fillStyle = topBg;
+      this.ctx.fillStyle = topBg;
 
       // 左上角弧
-      ctx.arc( x + borderRadius, y + borderRadius, borderRadius, T.toRad(-180), T.toRad(-90) )
+      this.ctx.arc( x + borderRadius, y + borderRadius, borderRadius, T.toRad(-180), T.toRad(-90) )
 
       // 向右
-      ctx.lineTo( x + w - borderRadius, y );
+      this.ctx.lineTo( x + w - borderRadius, y );
 
       // 右上角弧
-      ctx.arc(x + w - borderRadius, y + borderRadius, borderRadius, T.toRad(-90), 0)
+      this.ctx.arc(x + w - borderRadius, y + borderRadius, borderRadius, T.toRad(-90), 0)
 
       //向下
-      ctx.lineTo(x + w, y + topH);
+      this.ctx.lineTo(x + w, y + topH);
 
       // 向左
-      ctx.lineTo(x, y + topH);
+      this.ctx.lineTo(x, y + topH);
 
       // 向上
-      ctx.lineTo(x, y + borderRadius)
+      this.ctx.lineTo(x, y + borderRadius)
     },
     boxBottomPath: function(){
       let {x, y, w, topH, bottomH, borderRadius, bottomBg} = this;
 
-      ctx.fillStyle = bottomBg;
-      ctx.moveTo(x, y + topH);
+      this.ctx.fillStyle = bottomBg;
+      this.ctx.moveTo(x, y + topH);
 
       // 向下
-      ctx.lineTo(x, y + topH + bottomH - borderRadius)
+      this.ctx.lineTo(x, y + topH + bottomH - borderRadius)
 
       // 左下角弧
-      ctx.arc( x + borderRadius, y + topH + bottomH - borderRadius, borderRadius, T.toRad(180), T.toRad(90), true)
+      this.ctx.arc( x + borderRadius, y + topH + bottomH - borderRadius, borderRadius, T.toRad(180), T.toRad(90), true)
 
       // 向右
-      ctx.lineTo(x + w - borderRadius, y + topH + bottomH)
+      this.ctx.lineTo(x + w - borderRadius, y + topH + bottomH)
 
       // 右下角弧
-      ctx.arc( (x + w - borderRadius), (y + topH + bottomH - borderRadius), borderRadius, T.toRad(90), 0, true)
+      this.ctx.arc( (x + w - borderRadius), (y + topH + bottomH - borderRadius), borderRadius, T.toRad(90), 0, true)
 
       // 向上
-      ctx.lineTo(x + w, y + topH)
+      this.ctx.lineTo(x + w, y + topH)
     },
     borderPath: function(){
       let {x, y, w, topH, borderRadius, bottomH} = this
 
-      ctx.arc( x + borderRadius, y + borderRadius, borderRadius, T.toRad(-180), T.toRad(-90) )
-      ctx.lineTo( x + w - borderRadius, y );
-      ctx.arc(x + w - borderRadius, y + borderRadius, borderRadius, T.toRad(-90), 0)
-      ctx.lineTo(x + w, y + topH + bottomH - borderRadius);
-      ctx.arc( (x + w - borderRadius), (y + topH + bottomH - borderRadius), borderRadius, 0, T.toRad(90))
-      ctx.lineTo(x + borderRadius, y + topH + bottomH);
-      ctx.arc( x + borderRadius, y + topH + bottomH - borderRadius, borderRadius, T.toRad(90), T.toRad(180))
-      ctx.lineTo(x , y + borderRadius);
+      this.ctx.arc( x + borderRadius, y + borderRadius, borderRadius, T.toRad(-180), T.toRad(-90) )
+      this.ctx.lineTo( x + w - borderRadius, y );
+      this.ctx.arc(x + w - borderRadius, y + borderRadius, borderRadius, T.toRad(-90), 0)
+      this.ctx.lineTo(x + w, y + topH + bottomH - borderRadius);
+      this.ctx.arc( (x + w - borderRadius), (y + topH + bottomH - borderRadius), borderRadius, 0, T.toRad(90))
+      this.ctx.lineTo(x + borderRadius, y + topH + bottomH);
+      this.ctx.arc( x + borderRadius, y + topH + bottomH - borderRadius, borderRadius, T.toRad(90), T.toRad(180))
+      this.ctx.lineTo(x , y + borderRadius);
     },
     addLine: function(params){
       let {id, start, end, from, to} = params;

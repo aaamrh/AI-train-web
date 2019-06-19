@@ -11,7 +11,7 @@ T.getMousePos = function(ele){
 
     let {left, top} = target.getBoundingClientRect();
 
-    let {x, y} = {x: pageX-left, y: pageY-top}
+    let {x, y} = {x: pageX-left, y: pageY-top-document.documentElement.scrollTop}
 
     mouse.x = x;
     mouse.y = y;
