@@ -43,7 +43,7 @@
   TODO:  标题等。  其他的想出来再添加。
 */
 
-;(function(U,T){
+;(function(U, T){
   function Box(params){
     this._hash = params.id ? params.id.split('-')[1] : T.genKey();
     this.id = 'box-' + this._hash;

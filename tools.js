@@ -19,6 +19,17 @@ T.getMousePos = function(ele){
   return mouse;
 }
 
+T.getMosPosInEvt = function (ev){
+  let mos = {x:0, y:0}
+
+  let { target, pageX, pageY } = ev;
+  let { left, top } = target.getBoundingClientRect();
+
+  mos.x = pageX-left
+  mos.y = pageY-top
+  return mos
+}
+
 // 角度 -> 弧度
 T.toRad = function(angle){
   return angle * Math.PI / 180;
@@ -28,7 +39,6 @@ T.toRad = function(angle){
 T.toAngle = function(rad){
   return rad * 180 / Math.PI
 }
-
 
 T.genKey = function (prefix){
   let str = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';

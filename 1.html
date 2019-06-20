@@ -80,7 +80,7 @@
     let ctx2 = cv2.getContext('2d');
 
     // 获取鼠标在canvas上的坐标
-    let mousePos = T.getMousePos(cv);
+    let mousePos = T.getMousePos(cv1);
     let mousePos2 = T.getMousePos(cv2);
 
     let save = document.getElementById('btn1');
@@ -92,7 +92,27 @@
 
     let O = {
       boxes:[],
-      boxes1:{},
+      boxDict:{},
+      knots:{},
+      lines:{},
+      hoverBox:null,
+      hoverKnot:null,
+      optBox: null,
+      optKnot: null,
+      tempLine: null,
+      trash: null,
+    }
+    let STATE = {
+      mosdown:false,
+      mosup:true,
+      isDrag: false,
+      isDrawLine: false,
+      trans: false
+    }
+
+    let O2 = {
+      boxes:[],
+      boxDict:{},
       knots:{},
       lines:{},
       hoverBox:null,
@@ -102,23 +122,17 @@
       tempLine: null,
       trash: null
     }
-    let STATE = {
-      mosdown:false,
-      mosup:true,
-      isDrag: false,
-      isDrawLine: false,
-    }
   
     let box1 = new TitleBox({x:100, y:100,ctx: ctx1})
     let box2 = new Box({x:150, y:150, topBg:'red',ctx: ctx1})
     let box3 = new Box({x:200, y:200, topBg:'pink',ctx: ctx1})
     let box4 = new Box({x:250, y:250, topBg:'yellow',ctx: ctx1})
     let box5 = new Box({x:300, y:300, topBg:'orange',ctx: ctx1})
-    O.boxes1[box1.id] = box1;
-    O.boxes1[box2.id] = box2;
-    O.boxes1[box3.id] = box3;
-    O.boxes1[box4.id] = box4;
-    O.boxes1[box5.id] = box5;
+    O.boxDict[box1.id] = box1;
+    O.boxDict[box2.id] = box2;
+    O.boxDict[box3.id] = box3;
+    O.boxDict[box4.id] = box4;
+    O.boxDict[box5.id] = box5;
 
 
     O.boxes.push(box1)
@@ -179,14 +193,14 @@
               toKnot = line.to.knot.id
 
               line.transform({
-                start: O.boxes1[fromBox].knots[fromKnot],
-                to: O.boxes1[toBox].knots[toKnot]
+                start: O.boxDict[fromBox].knots[fromKnot],
+                to: O.boxDict[toBox].knots[toKnot]
               })
             }
           }
           updatePos()
 
-          refresh()
+          render()
         }
 
         if(STATE.isDrawLine){
@@ -213,7 +227,7 @@
 
         let actKnot = isPointKnot(mousePos);
         setKnotStyle(actKnot)
-        refresh()
+        render()
         if( !actKnot ){ O.hoverKnot = null }
       }else{
         if(!STATE.isDrag){
@@ -265,10 +279,6 @@
       O.optKnot = null;
 
       O.tempLine = null;
-
-      console.log(O, STATE)
-
-      
     })
     
     /**
@@ -302,7 +312,36 @@
           result = getPosOnObj()
         }
       }
-      refresh()
+      render()
+
+      if(!result){ return false }
+      return result;
+    }  // isMouseOnObj  END
+
+    function isMouseOnObj2(){
+      let result;
+      let num = 0;
+      console.log(O2.boxes)
+      for(let i=O2.boxes.length-1; i>=0; i--){
+
+        O2.boxes[i].transform({ ishover:false })
+       
+        if( O2.boxes[i].isPoint(mousePos2) ){  // 鼠标在box上
+          // 鼠标在多个box重合的地方时，所有的box会都有边框,因此只设置第一个box的hover状态(num == 0)
+          if(num == 0){
+            if(STATE.mosdown){  // 第一次点击（不拖拽，不画线）时设置 optBox
+              if( !STATE.isDrag && !STATE.isDrawLine ){ O2.optBox = O2.boxes[i] };
+            }
+            if(!STATE.isDrag){ O2.hoverBox = O2.boxes[i] }
+
+            O2.hoverBox.transform({ ishover: true });
+            num++;
+          }
+
+          result = getPosOnObj()
+        }
+      }
+      render()
 
       if(!result){ return false }
       return result;
@@ -319,10 +358,21 @@
       return pos
     }
 
+    function getPosOnObj2(){
+      let pos = {};
+      pos.x = mousePos2.x - O2.hoverBox.x;
+      pos.y = mousePos2.y - O2.hoverBox.y;
+      return pos
+    }
+
 
     function isPointKnot(pos){
       // 鼠标是否在 连接点 上, 是返回该 knot，不是返回 false
       return O.hoverBox.isPointKnot(pos)
+    }
+    function isPointKnot2(pos){
+      // 鼠标是否在 连接点 上, 是返回该 knot，不是返回 false
+      return O2.hoverBox.isPointKnot(pos)
     }
 
 
@@ -343,6 +393,24 @@
       }
     }
 
+    
+    function setKnotStyle2(knot){
+      // 设置 knot 的 hover 样式
+      if( knot ){
+        knot.fillStyle = 'red';
+        // 节点对应的box存储到 knots ： {'left-knot': Box1}
+        O2.knots[ knot.id ] = O2.hoverBox;
+        O2.hoverKnot = O2.hoverBox.knots[knot.id];
+      }else{
+        // O.hoverKnot = null;
+        let box = null;
+        for(let id in O2.knots){
+          box = O2.knots[id];
+          box.knots[id].fillStyle = '#333';
+        }
+      }
+    }
+
 
     function dragOrLine(o){
       // 拖拽: 鼠标点击对象 && 不在连接点上 
@@ -356,16 +424,24 @@
     }
 
         
-    function refresh(){
+    function render(){
       ctx1.clearRect(0, 0, cv1.width, cv1.height);
+
       O.boxes.forEach( item => item.draw() )
-      
       for(let i in O.lines){ O.lines[i].draw() }
     }
 
+    function render2(){
+      ctx2.clearRect(0, 0, cv2.width, cv2.height);
+
+      for(let i in O2.boxDict){ O2.boxDict[i].draw() }
+      for(let i in O2.lines){ O2.lines[i].draw() }
+    }
+
+
     save.onclick = function(){
       var res = {};
-      res.boxes = O.boxes1;
+      res.boxes = O.boxDict;
       res.lines = O.lines;
       
       // code.innerHTML = JSON.stringify(res, null, 2)
@@ -385,7 +461,6 @@
           o.draw()
         },
         'lines': function(data){
-          console.log(data)
           let { id, from, to, start, end } = data
           o = new Line({ctx:ctx1, id, from, to, start, end})
           o.draw()
@@ -398,37 +473,91 @@
       }
     }
 
-    function copy2Ctx2(){
-      // console.log(O.optBox)
+
+    function copy2Ctx2(ev){
       ctx2.clearRect(0, 0, cv1.width, cv1.height);
+      let mosPos = T.getMosPosInEvt(ev);
+
+      let ctx = ctx2;
+      let { w, topH, bottomH, topBg, bottomBg, borderRadius } = O.optBox;
+      let x = mosPos.x - w/2;
+      let y = mosPos.y - (topH + bottomH)/2
+
+      return new Box({x, y, w, topH, bottomH, topBg, bottomBg, borderRadius, ctx})
+    }
+  
+
+    cv2.addEventListener('mouseover', function(ev){
+      /**
+       * 状态: 
+       *  1. 如果mosdown并且有cv1上的optBox, 是 trans状态
+       *  2. mosup, 普通over
+      */
       if( O.optBox ){
-        let ctx = ctx2;
-        let { w, topH, bottomH, topBg, bottomBg, borderRadius } = O.optBox;
-        let x = mousePos2.x - w/2;
-        let y = mousePos2.y - (topH + bottomH)/2
-        /** 
-         * TODO:  
-         * 2. 跟随鼠标移动
-         * 3. 鼠标在 cv2上mosup, 在cv上mosup
-        */
-        o = new Box({x, y, w, topH, bottomH, topBg, bottomBg, borderRadius, ctx})
-        o.draw()
+        let o = copy2Ctx2(ev);
+        !O2.boxDict[ o.id ] && O2.boxes.push(o);
+        O2.boxDict[ o.id ] = o;
+        O2.optBox = o;
+        render2()
+        STATE.trans = true;
       }
+    })
+
+    cv2.addEventListener('mousemove', options2)
+
+
+    function options2(){
+      /** 
+        * 状态：cv1是副面板，最后不支持连线状态
+        *  1. mosdown, 可能是 trans
+        *  2. mosdown, 可能是 拖拽、连线
+        *  3. mosup, 普通移动
+      */
+      ctx2.clearRect(0, 0, cv2.width, cv2.height);
+      render2()
+
+      if(STATE.trans){
+        O2.optBox.transform({
+          x: mousePos2.x - 80,
+          y: mousePos2.y - 100
+        })
+        O2.optBox.draw()
+      }
+
+      console.log(isMouseOnObj2())
+
+      if( isMouseOnObj2() ){
+        O2.hoverBox.transform({ ishover: true })
+        let actKnot = isPointKnot2(mousePos2);
+
+        setKnotStyle(actKnot)
+        render()
+        if( !actKnot ){ O2.hoverKnot = null }
+      }else{
+        if(!STATE.isDrag){
+          O2.hoverBox = null;
+        }
+        O2.hoverKnot = null;
+      }
+
     }
 
-    cv2.addEventListener('mousemove', function(){
-      copy2Ctx2()
-    })
-  
-    cv2.addEventListener('mouseover', function(){
-      console.log(O, STATE)
+    cv2.addEventListener('mouseup', function(){
+      /** 
+       *  1. trans结束
+       *  2. 拖拽结束
+       *  3. 连线结束
+       *  4. 普通点击
+      */
+      O.hoverBox.transform({ ishover: false });
+      O.hoverBox = null;
+      render()
+      render2()
+
+      O2.optBox = null;
+      STATE.trans = false;
     })
 
-    cv2.addEventListener('mouseup', function(){
-      O.hoverBox.transform({ ishover: false });
-      O.hoverBox = null
-      refresh()
-    })
     /*
       var yImg = new Image();
       yImg.src = './arcTo.png';
@@ -439,8 +568,6 @@
         ctx1.drawImage(obj, 100, 50) 
       }
     */
-
-
   </script>
 </body>
 </html>
