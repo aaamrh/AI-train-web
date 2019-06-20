@@ -150,7 +150,7 @@
       STATE.mosdown = true;
       STATE.mosup = false;
 
-      let posOnObj = isMouseOnObj();
+      let posOnObj = isMouseOnObj(O, mousePos);
       if(!posOnObj) {return}
 
       let knotActive = isPointKnot(mousePos)
@@ -222,7 +222,7 @@
       // console.log(O.hoverBox)
       // console.log(O.optKnot)
       // console.log(O.hoverKnot)
-      if( isMouseOnObj() ){
+      if( isMouseOnObj(O, mousePos) ){
         O.hoverBox.transform({ ishover: true })
 
         let actKnot = isPointKnot(mousePos);
@@ -289,7 +289,37 @@
      * 
      * （移动 && 点击） 都会判断 mos是否在对象上
      */
-    function isMouseOnObj(){
+    // function isMouseOnObj(){
+    //   let result;
+    //   let num = 0;
+
+    //   for(let i=O.boxes.length-1; i>=0; i--){
+
+    //     O.boxes[i].transform({ ishover:false })
+       
+    //     if( O.boxes[i].isPoint(mousePos) ){  // 鼠标在box上
+    //       // 鼠标在多个box重合的地方时，所有的box会都有边框,因此只设置第一个box的hover状态(num == 0)
+    //       if(num == 0){
+    //         if(STATE.mosdown){  // 第一次点击（不拖拽，不画线）时设置 optBox
+    //           if( !STATE.isDrag && !STATE.isDrawLine ){ O.optBox = O.boxes[i] };
+    //         }
+    //         if(!STATE.isDrag){ O.hoverBox = O.boxes[i] }
+
+    //         O.hoverBox.transform({ ishover: true });
+    //         num++;
+    //       }
+
+    //       result = getPosOnObj()
+    //     }
+    //   }
+    //   render()
+
+    //   if(!result){ return false }
+    //   return result;
+    // }  // isMouseOnObj  END
+
+
+    function isMouseOnObj(O, mousePos){
       let result;
       let num = 0;
 
@@ -306,35 +336,6 @@
             if(!STATE.isDrag){ O.hoverBox = O.boxes[i] }
 
             O.hoverBox.transform({ ishover: true });
-            num++;
-          }
-
-          result = getPosOnObj()
-        }
-      }
-      render()
-
-      if(!result){ return false }
-      return result;
-    }  // isMouseOnObj  END
-
-    function isMouseOnObj2(){
-      let result;
-      let num = 0;
-      console.log(O2.boxes)
-      for(let i=O2.boxes.length-1; i>=0; i--){
-
-        O2.boxes[i].transform({ ishover:false })
-       
-        if( O2.boxes[i].isPoint(mousePos2) ){  // 鼠标在box上
-          // 鼠标在多个box重合的地方时，所有的box会都有边框,因此只设置第一个box的hover状态(num == 0)
-          if(num == 0){
-            if(STATE.mosdown){  // 第一次点击（不拖拽，不画线）时设置 optBox
-              if( !STATE.isDrag && !STATE.isDrawLine ){ O2.optBox = O2.boxes[i] };
-            }
-            if(!STATE.isDrag){ O2.hoverBox = O2.boxes[i] }
-
-            O2.hoverBox.transform({ ishover: true });
             num++;
           }
 
@@ -524,9 +525,8 @@
         O2.optBox.draw()
       }
 
-      console.log(isMouseOnObj2())
 
-      if( isMouseOnObj2() ){
+      if( isMouseOnObj(O2, mousePos2) ){
         O2.hoverBox.transform({ ishover: true })
         let actKnot = isPointKnot2(mousePos2);
 
