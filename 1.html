@@ -153,7 +153,7 @@
       let posOnObj = isMouseOnObj(O, mousePos);
       if(!posOnObj) {return}
 
-      let knotActive = isPointKnot(mousePos)
+      let knotActive = isPointKnot(O,mousePos)
       if( knotActive ){ 
         O.optKnot = O.hoverBox.knots[knotActive.id] 
         O.tempLine = new Line({ctx: ctx1})
@@ -225,7 +225,7 @@
       if( isMouseOnObj(O, mousePos) ){
         O.hoverBox.transform({ ishover: true })
 
-        let actKnot = isPointKnot(mousePos);
+        let actKnot = isPointKnot(O,mousePos);
         setKnotStyle(actKnot)
         render()
         if( !actKnot ){ O.hoverKnot = null }
@@ -289,36 +289,6 @@
      * 
      * （移动 && 点击） 都会判断 mos是否在对象上
      */
-    // function isMouseOnObj(){
-    //   let result;
-    //   let num = 0;
-
-    //   for(let i=O.boxes.length-1; i>=0; i--){
-
-    //     O.boxes[i].transform({ ishover:false })
-       
-    //     if( O.boxes[i].isPoint(mousePos) ){  // 鼠标在box上
-    //       // 鼠标在多个box重合的地方时，所有的box会都有边框,因此只设置第一个box的hover状态(num == 0)
-    //       if(num == 0){
-    //         if(STATE.mosdown){  // 第一次点击（不拖拽，不画线）时设置 optBox
-    //           if( !STATE.isDrag && !STATE.isDrawLine ){ O.optBox = O.boxes[i] };
-    //         }
-    //         if(!STATE.isDrag){ O.hoverBox = O.boxes[i] }
-
-    //         O.hoverBox.transform({ ishover: true });
-    //         num++;
-    //       }
-
-    //       result = getPosOnObj()
-    //     }
-    //   }
-    //   render()
-
-    //   if(!result){ return false }
-    //   return result;
-    // }  // isMouseOnObj  END
-
-
     function isMouseOnObj(O, mousePos){
       let result;
       let num = 0;
@@ -339,7 +309,7 @@
             num++;
           }
 
-          result = getPosOnObj()
+          result = getPosOnObj(O, mousePos)
         }
       }
       render()
@@ -352,28 +322,17 @@
     /**
      * 获取鼠标在 obj 上的坐标
      */
-    function getPosOnObj(){
+    function getPosOnObj(O, mosPos){
       let pos = {};
-      pos.x = mousePos.x - O.hoverBox.x;
-      pos.y = mousePos.y - O.hoverBox.y;
-      return pos
-    }
-
-    function getPosOnObj2(){
-      let pos = {};
-      pos.x = mousePos2.x - O2.hoverBox.x;
-      pos.y = mousePos2.y - O2.hoverBox.y;
+      pos.x = mosPos.x - O.hoverBox.x;
+      pos.y = mosPos.y - O.hoverBox.y;
       return pos
     }
 
 
-    function isPointKnot(pos){
+    function isPointKnot(O, mosPos){
       // 鼠标是否在 连接点 上, 是返回该 knot，不是返回 false
-      return O.hoverBox.isPointKnot(pos)
-    }
-    function isPointKnot2(pos){
-      // 鼠标是否在 连接点 上, 是返回该 knot，不是返回 false
-      return O2.hoverBox.isPointKnot(pos)
+      return O.hoverBox.isPointKnot(mosPos)
     }
 
 
@@ -418,7 +377,7 @@
       if( o && !STATE.isDrawLine ){ STATE.isDrag = true }
 
       // 如果点击在 knot 上不是拖动， 是连线
-      if( isPointKnot(mousePos) ){  
+      if( isPointKnot(O, mousePos) ){  
         STATE.isDrag = false;
         STATE.isDrawLine = true; 
       }
@@ -528,7 +487,7 @@
 
       if( isMouseOnObj(O2, mousePos2) ){
         O2.hoverBox.transform({ ishover: true })
-        let actKnot = isPointKnot2(mousePos2);
+        let actKnot = isPointKnot(O2, mousePos2);
 
         setKnotStyle(actKnot)
         render()
