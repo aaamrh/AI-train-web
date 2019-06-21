@@ -139,7 +139,7 @@
     O1.boxes.push(box3)
     O1.boxes.push(box4)
     O1.boxes.push(box5)
-
+~
 
     /** 
      * 1. 鼠标点下， 判断是拖拽还是连线  
@@ -164,7 +164,7 @@
         STATE.isDrawLine = false; 
       }
 
-      let opts = options(posOnObj)
+      let opts = options('cv1', posOnObj)
 
       cv1.addEventListener('mousemove', opts)
       cv1.addEventListener('mouseup', ()=>{
@@ -176,19 +176,20 @@
     })  // mousedown END
 
     
-    function options(posOnObj){
+    function options(str, posOnObj){
+      let {objs, mosPos} = whichCanvas(str)
       return function(){    
         if(STATE.isDrag){                       
-          O1.optBox.transform({
-            x: mousePos1.x - posOnObj.x,
-            y: mousePos1.y - posOnObj.y
+          objs.optBox.transform({
+            x: mosPos.x - posOnObj.x,
+            y: mosPos.y - posOnObj.y
           })
 
           function updatePos(){
             let line = null, fromKnot, fromBox, toKnot, toBox;
 
-            for(let i in O1.lines){
-              line = O1.lines[i];
+            for(let i in objs.lines){
+              line = objs.lines[i];
 
               fromKnot = line.from.knot.id
               fromBox = line.from.box.id
@@ -196,26 +197,25 @@
               toKnot = line.to.knot.id
 
               line.transform({
-                start: O1.boxDict[fromBox].knots[fromKnot],
-                to: O1.boxDict[toBox].knots[toKnot]
+                start: objs.boxDict[fromBox].knots[fromKnot],
+                to: objs.boxDict[toBox].knots[toKnot]
               })
             }
           }
           updatePos()
 
-          render('cv1')
+          render(str)
         }
         
         if(STATE.isDrawLine){
-          render('cv1')
-          O1.tempLine.drawLine({
-            startX: O1.optKnot.junction.x,
-            startY: O1.optKnot.junction.y,
-            endX: mousePos1.x,
-            endY: mousePos1.y
+          render(str)
+          objs.tempLine.drawLine({
+            startX: objs.optKnot.junction.x,
+            startY: objs.optKnot.junction.y,
+            endX: mosPos.x,
+            endY: mosPos.y
           })
         }
-        
       }
     }
 
@@ -477,7 +477,7 @@
         STATE.isDrawLine = false;
       }
 
-      let opts = options2(posOnObj)
+      let opts = options('cv2', posOnObj)
 
       cv2.addEventListener('mousemove', opts)
       cv2.addEventListener('mouseup', ()=>{
@@ -541,53 +541,8 @@
         }
       })
       O2.lines[line1.id] = line1;
-      console.log(O2.lines)
       render('cv2')
     })
-
-
-    function options2(posOnObj){
-      return  function(){
-        if(STATE.isDrag){                       
-          O2.optBox.transform({
-            x: mousePos2.x - posOnObj.x,
-            y: mousePos2.y - posOnObj.y
-          })
-
-          function updatePos(){
-            let line = null, fromKnot, fromBox, toKnot, toBox;
-
-            for(let i in O2.lines){
-              line = O2.lines[i];
-
-              fromKnot = line.from.knot.id
-              fromBox = line.from.box.id
-              toBox = line.to.box.id
-              toKnot = line.to.knot.id
-
-              line.transform({
-                start: O2.boxDict[fromBox].knots[fromKnot],
-                to: O2.boxDict[toBox].knots[toKnot]
-              })
-            }
-          }
-          updatePos()
-
-          render('cv2')
-        }
-
-        // NOTICE: render必须在 drawLine前，因为只是临时画线。并没有真正的完成连线
-        if(STATE.isDrawLine){
-          render('cv2')              
-          O2.tempLine.drawLine({
-            startX: O2.optKnot.junction.x,
-            startY: O2.optKnot.junction.y,
-            endX: mousePos2.x,
-            endY: mousePos2.y
-          })
-        }
-      }
-    }  
 
     /*
       var yImg = new Image();
