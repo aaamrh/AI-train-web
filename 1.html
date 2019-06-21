@@ -270,9 +270,6 @@
     })
        
    
-    document.addEventListener('mousemove', function(){})
-
-
     document.addEventListener('mouseup', (ev)=>{ 
       STATE.mosdown = false;
       STATE.mosup = true;
@@ -280,10 +277,15 @@
       STATE.isDrag = false;
       STATE.isDrawLine = false; 
 
+      STATE.trans = false;
+
       O1.optBox = null;
       O1.optKnot = null;
-
       O1.tempLine = null;
+      
+      O2.hoverBox = null;
+      O2.optBox = null;
+      O2.tempLine = null;
     })
     
     /**
@@ -341,10 +343,10 @@
       let cv, objs, mosPos;
 
       switch(str){
-        case 'cv1': objs = O1, mosPos = mousePos1, cv=cv1, ctx = ctx1;
+        case 'cv1': objs = O1, mosPos = mousePos1, cv = cv1, ctx = ctx1;
         break;
 
-        case 'cv2': objs = O2, mosPos = mousePos2, cv=cv2, ctx = ctx2;
+        case 'cv2': objs = O2, mosPos = mousePos2, cv = cv2, ctx = ctx2;
         break;
       }
       return {objs, mosPos, cv, ctx}
@@ -516,11 +518,30 @@
 
 
     cv2.addEventListener('mouseup', function(){
-      O2.hoverBox && O2.hoverBox.transform({ ishover: false });
-      O2.hoverBox = null;
-      
-      O2.optBox = null;
-      STATE.trans = false;
+      if( !O2.hoverKnot ){ return }
+      if( O2.optBox.id === O2.hoverBox.id ){ return }
+
+      let line1 = new Line({
+        ctx: ctx2,
+        from: {
+          box: O2.optBox,
+          knot: O2.optKnot
+        },
+        to: {
+          box: O2.hoverBox,
+          knot: O2.hoverKnot
+        },
+        start : {
+          x: O2.optKnot.junction.x,
+          y: O2.optKnot.junction.y
+        },
+        end : {
+          x: mousePos2.x,
+          y: mousePos2.y
+        }
+      })
+      O2.lines[line1.id] = line1;
+      console.log(O2.lines)
       render('cv2')
     })
 
@@ -532,6 +553,26 @@
             x: mousePos2.x - posOnObj.x,
             y: mousePos2.y - posOnObj.y
           })
+
+          function updatePos(){
+            let line = null, fromKnot, fromBox, toKnot, toBox;
+
+            for(let i in O2.lines){
+              line = O2.lines[i];
+
+              fromKnot = line.from.knot.id
+              fromBox = line.from.box.id
+              toBox = line.to.box.id
+              toKnot = line.to.knot.id
+
+              line.transform({
+                start: O2.boxDict[fromBox].knots[fromKnot],
+                to: O2.boxDict[toBox].knots[toKnot]
+              })
+            }
+          }
+          updatePos()
+
           render('cv2')
         }
 
