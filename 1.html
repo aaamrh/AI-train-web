@@ -61,7 +61,6 @@
      *  STATE 设置: 
      *    鼠标点下: 如果在box上: 拖拽（isDrag）
      *             如果在knot上: 画线（isDrawLine）
-     *             dragOrLine() 
      * 
      *  STATE 还原：
      *    doc鼠标抬起: mosdown = false, mosup = true
@@ -150,17 +149,21 @@
       STATE.mosdown = true;
       STATE.mosup = false;
 
-      let posOnObj = isMouseOnObj('cv1');
-      if(!posOnObj) {return}
+      let posOnObj = isMouseOnObj('cv1');    // 1. 是否点在box上
+      if( !posOnObj ) { return }
 
-      let knotActive = isPointKnot('cv1')
-      if( knotActive ){ 
+      let knotActive = isPointKnot('cv1')   
+      if( knotActive ){                      // 2. 是否点在节点上，不在节点上就是拖拽，
+        STATE.isDrag = false;
+        STATE.isDrawLine = true; 
+
         O1.optKnot = O1.hoverBox.knots[knotActive.id] 
         O1.tempLine = new Line({ctx: ctx1})
+      }else{
+        STATE.isDrag = true;
+        STATE.isDrawLine = false; 
       }
 
-      //  设置 STATE: drag drawLine
-      if(posOnObj){ dragOrLine( posOnObj ) }           
       let opts = options(posOnObj)
 
       cv1.addEventListener('mousemove', opts)
@@ -322,6 +325,7 @@
     
     /**
      * 获取鼠标在 obj 上的坐标
+     * @params [str] {'cv1' 或者 'cv2'}
      */
     function getPosOnObj(str){
       let pos = {};
@@ -371,18 +375,6 @@
       }
     }
 
-
-    function dragOrLine(o){
-      // 拖拽: 鼠标点击对象 && 不在连接点上 
-      if( o && !STATE.isDrawLine ){ STATE.isDrag = true }
-
-      // 如果点击在 knot 上不是拖动， 是连线
-      if( isPointKnot('cv1') ){  
-        STATE.isDrag = false;
-        STATE.isDrawLine = true; 
-      }
-    }
-
         
     function render(str){
 
@@ -428,7 +420,7 @@
     }
 
 
-    function copy2Ctx2(ev){
+    function trans2Ctx2(ev){
       ctx2.clearRect(0, 0, cv1.width, cv1.height);
       let mosPos = T.getMosPosInEvt(ev);
 
@@ -448,52 +440,46 @@
        *  2. mosup, 普通over
       */
       if( O1.optBox ){
-        let o = copy2Ctx2(ev);
+        let o = trans2Ctx2(ev);
         !O2.boxDict[ o.id ] && O2.boxes.push(o);
         O2.boxDict[ o.id ] = o;
+
+        O2.hoverBox = o;
         O2.optBox = o;
         render('cv2')
         STATE.trans = true;
       }
     })
 
+    cv2.addEventListener('mousedown', function(ev){
+      /** 
+       *  1. 普通点击
+       *  2. 拖拽
+       *  3. 连线
+      */
+      STATE.mosdown = true;
+      STATE.mosup = false;
+
+      let posOnObj = isMouseOnObj('cv2'); 
+      if( !posOnObj ) {return}             // 1.
+
+      O2.optKnot = posOnObj;
+      let knotActive = isPointKnot('cv2') 
+      if( knotActive ){                    // 连线
+        STATE.isDrag = false;
+        STATE.isDrawLine = true;
+
+        O2.optKnot = O2.hoverBox.knots[knotActive.id] 
+        O2.tempLine = new Line({ctx: ctx2})
+      }else{                               // 拖拽
+        STATE.isDrag = true;
+        STATE.isDrawLine = false;
+        console.log(STATE)
+      }
+    })
+
     cv2.addEventListener('mousemove', options2)
 
-
-    function options2(){
-      /** 
-        * 状态：cv1是副面板，最后不支持连线状态
-        *  1. mosdown, 可能是 trans
-        *  2. mosdown, 可能是 拖拽、连线
-        *  3. mosup, 普通移动
-      */
-      ctx2.clearRect(0, 0, cv2.width, cv2.height);
-      render('cv2')
-
-      if(STATE.trans){
-        O2.optBox.transform({
-          x: mousePos2.x - 80,
-          y: mousePos2.y - 100
-        })
-        O2.optBox.draw()
-      }
-
-
-      if( isMouseOnObj('cv2') ){
-        O2.hoverBox.transform({ ishover: true })
-        let actKnot = isPointKnot('cv2');
-
-        setKnotStyle('cv1', actKnot)
-        render('cv1')
-        if( !actKnot ){ O2.hoverKnot = null }
-      }else{
-        if(!STATE.isDrag){
-          O2.hoverBox = null;
-        }
-        O2.hoverKnot = null;
-      }
-
-    }
 
     cv2.addEventListener('mouseup', function(){
       /** 
@@ -510,6 +496,56 @@
       STATE.trans = false;
     })
 
+
+    function options2(){
+      /** 
+        * 状态：cv1是副面板，最后不支持连线状态
+        *  1. mosdown, 可能是 trans
+        *  2. mosdown, 可能是 拖拽、连线
+        *  3. mosup, 普通移动
+      */
+      if(STATE.trans){
+        O2.optBox.transform({
+          x: mousePos2.x - 80,
+          y: mousePos2.y - 100
+        })
+      }
+
+
+      if( isMouseOnObj('cv2') ){
+        O2.hoverBox.transform({ ishover: true })
+        let actKnot = isPointKnot('cv2');
+
+        setKnotStyle('cv2', actKnot)
+        render('cv2')
+        if( !actKnot ){ O2.hoverKnot = null }
+      }else{
+        if(!STATE.isDrag){
+          O2.hoverBox = null;
+        }
+        O2.hoverKnot = null;
+      }
+
+      if(STATE.isDrag){                       
+        O2.optBox.transform({
+          x: mousePos2.x - O2.optKnot.x,
+          y: mousePos2.y - O2.optKnot.y
+        })
+      }
+
+      if(STATE.isDrawLine){
+        O2.tempLine.drawLine({
+          startX: O2.optKnot.junction.x,
+          startY: O2.optKnot.junction.y,
+          endX: mousePos2.x,
+          endY: mousePos2.y
+        })
+      }
+
+      ctx2.clearRect(0, 0, cv2.width, cv2.height);
+      render('cv2')
+    }  // 539
+
     /*
       var yImg = new Image();
       yImg.src = './arcTo.png';
@@ -522,4 +558,4 @@
     */
   </script>
 </body>
-</html>
+</html> 
