@@ -68,9 +68,12 @@
      *                O1.optBox = null, O1.optKnot = null;
      * 
      * // TODO:  
-     * // 连线时候的吸附功能
-     * // 加载完后鼠标放上回到原来的状态 
+     * // 1. 禁止 canvas1中的 连线功能，
+     * // 2. 从 canvas1 拖拽到 canvas2 中后， 还原canvas1的位置
+     * // 3. save: 保存 canvas2中的数据
+     * // 4. box的拓展 （ 构思 ）
      * 
+     * // 连线时候的吸附功能
     */
     let cv1 = document.getElementById('canvas');
     let ctx1 = cv1.getContext('2d');
@@ -139,7 +142,6 @@
     O1.boxes.push(box3)
     O1.boxes.push(box4)
     O1.boxes.push(box5)
-~
 
     /** 
      * 1. 鼠标点下， 判断是拖拽还是连线  
@@ -240,6 +242,7 @@
         }
         O1.hoverKnot = null;
       }
+      render('cv1')
     })
 
     cv1.addEventListener('mouseup', ()=>{
@@ -512,7 +515,6 @@
         if( !STATE.isDrag ){ O2.hoverBox = null }
         O2.hoverKnot = null;
       }
-      ctx2.clearRect(0, 0, cv2.width, cv2.height);
       render('cv2')
     })
 
